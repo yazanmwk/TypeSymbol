@@ -1,0 +1,10 @@
+[package]
+name = "typesymbol-cli"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+typesymbol-core = { path = "../typesymbol-core" }
+typesymbol-config = { path = "../typesymbol-config" }
+typesymbol-daemon = { path = "../typesymbol-daemon" }
+clap = { version = "4.5", features = ["derive"] }

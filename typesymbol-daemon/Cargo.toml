@@ -1,0 +1,9 @@
+[package]
+name = "typesymbol-daemon"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+typesymbol-core = { path = "../typesymbol-core" }
+typesymbol-config = { path = "../typesymbol-config" }
+typesymbol-platform-macos = { path = "../typesymbol-platform-macos" }

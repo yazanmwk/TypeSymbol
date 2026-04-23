@@ -1,0 +1,9 @@
+[workspace]
+resolver = "2"
+members = [
+    "typesymbol-core",
+    "typesymbol-config",
+    "typesymbol-cli",
+    "typesymbol-daemon",
+    "typesymbol-platform-macos"
+]

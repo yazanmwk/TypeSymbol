@@ -1,0 +1,8 @@
+[package]
+name = "typesymbol-platform-macos"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+typesymbol-config = { path = "../typesymbol-config" }
+rdev = "0.5"
