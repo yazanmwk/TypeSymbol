@@ -1,6 +1,6 @@
 use typesymbol_config::TypeSymbolConfig;
 use typesymbol_core::CoreEngine;
-use typesymbol_platform_macos::{MacOSAdapter, PlatformEvent};
+use typesymbol_platform_macos::{inject_replacement, MacOSAdapter, PlatformEvent};
 
 pub fn run(config: TypeSymbolConfig) {
     println!("Starting TypeSymbol daemon with config: {:?}", config.mode);
@@ -16,15 +16,18 @@ pub fn run(config: TypeSymbolConfig) {
             }
         }
         PlatformEvent::Backspace => daemon.on_backspace(),
-        PlatformEvent::Space => {
-            // Space commits normal typing; keep buffer and continue.
-        }
         PlatformEvent::Enter => {
             if let Some(candidate) = daemon.preview_replacement() {
-                println!(
-                    "Accepted candidate. Replacement injection pending implementation: {} -> {}",
-                    candidate.original, candidate.replacement
-                );
+                match inject_replacement(&candidate.original, &candidate.replacement, 1) {
+                    Ok(()) => {
+                        println!("Replaced: {} -> {}", candidate.original, candidate.replacement);
+                        daemon.reset_buffer();
+                    }
+                    Err(err) => {
+                        eprintln!("Replacement injection failed: {}", err);
+                    }
+                }
+            } else {
                 daemon.reset_buffer();
             }
         }
@@ -60,15 +63,21 @@ impl TypeSymbolDaemon {
     }
 
     pub fn preview_replacement(&self) -> Option<ReplacementCandidate> {
-        let formatted = self.engine.format(&self.text_buffer);
-        if formatted != self.text_buffer {
-            Some(ReplacementCandidate {
-                original: self.text_buffer.clone(),
-                replacement: formatted,
-            })
-        } else {
-            None
+        let chars: Vec<char> = self.text_buffer.chars().collect();
+        let max_suffix = chars.len().min(64);
+
+        for len in (1..=max_suffix).rev() {
+            let start = chars.len() - len;
+            let suffix: String = chars[start..].iter().collect();
+            let formatted = self.engine.format(&suffix);
+            if formatted != suffix {
+                return Some(ReplacementCandidate {
+                    original: suffix,
+                    replacement: formatted,
+                });
+            }
         }
+        None
     }
 
     pub fn current_buffer(&self) -> &str {
