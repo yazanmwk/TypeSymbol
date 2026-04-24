@@ -1,18 +1,11 @@
 use clap::{Parser, Subcommand};
-use rustyline::completion::{Completer, Pair};
-use rustyline::error::ReadlineError;
-use rustyline::highlight::Highlighter;
-use rustyline::hint::Hinter;
-use rustyline::validate::Validator;
-use rustyline::{Context, Editor, Helper};
+use fs2::FileExt;
 use std::fs;
-use std::io::{self, BufRead, Write};
+use std::io::{self, BufRead, IsTerminal, Write};
 use std::path::PathBuf;
 use std::process::{self, Command, Stdio};
 use typesymbol_config::{load_config, TypeSymbolConfig};
 use typesymbol_core::CoreEngine;
-
-const LOGO_PNG: &[u8] = include_bytes!("../../TypeSymbol_logo.png");
 
 #[derive(Parser)]
 #[command(name = "typesymbol", version = "0.1", about = "System-wide math shorthand daemon")]
@@ -37,6 +30,10 @@ enum Commands {
         #[command(subcommand)]
         action: DaemonAction,
     },
+    /// Turn TypeSymbol on (enable autostart + start now)
+    On,
+    /// Turn TypeSymbol off (stop now + disable autostart)
+    Off,
     /// Inspect or manage config
     Config {
         #[command(subcommand)]
@@ -48,11 +45,6 @@ enum Commands {
 
 #[derive(Subcommand)]
 enum DaemonAction {
-    Start {
-        /// Launch daemon in background and return immediately
-        #[arg(long)]
-        background: bool,
-    },
     Stop,
     Status,
     Enable,
@@ -123,23 +115,6 @@ fn main() {
             println!("{}", result);
         }
         Some(Commands::Daemon { action }) => match action {
-            DaemonAction::Start { background } => {
-                if let Some(pid) = read_live_pid() {
-                    eprintln!("TypeSymbol daemon already running (pid {}).", pid);
-                    process::exit(1);
-                }
-
-                if *background {
-                    start_daemon_background(cli.config.clone());
-                } else {
-                    println!("Starting daemon...");
-                    let pid = process::id();
-                    if let Err(err) = write_pid_file(pid) {
-                        eprintln!("Warning: failed to write pid file: {}", err);
-                    }
-                    typesymbol_daemon::run(config);
-                }
-            }
             DaemonAction::Stop => {
                 stop_daemon();
             }
@@ -153,13 +128,16 @@ fn main() {
                 disable_autostart();
             }
             DaemonAction::RunInternal => {
-                let pid = process::id();
-                if let Err(err) = write_pid_file(pid) {
-                    eprintln!("Warning: failed to write pid file: {}", err);
-                }
-                typesymbol_daemon::run(config);
+                run_daemon_single_instance(config);
             }
         },
+        Some(Commands::On) => {
+            ensure_background_service(cli.config.clone());
+        }
+        Some(Commands::Off) => {
+            stop_daemon();
+            disable_autostart();
+        }
         Some(Commands::Config { action }) => match action {
             ConfigAction::Show => {
                 print_config(&loaded);
@@ -194,9 +172,123 @@ fn main() {
         },
         Some(Commands::App) => run_app_mode(config),
         None => {
-            run_shell_mode(loaded, cli.config.clone());
+            ensure_background_service(cli.config.clone());
+            if io::stdin().is_terminal() && io::stdout().is_terminal() {
+                run_settings_shell(resolve_config(&cli), cli.config.clone());
+            }
         }
     }
+}
+
+fn ensure_background_service(config_path: Option<PathBuf>) {
+    // One command should make TypeSymbol "just work":
+    // - keep daemon always-on after reboot/login
+    // - start daemon now if it's not already running
+    enable_autostart(config_path.clone());
+    if read_live_pid().is_none() {
+        let _ = start_daemon_background(config_path);
+    } else {
+        println!("TypeSymbol is already running in background.");
+    }
+}
+
+fn run_settings_shell(mut loaded: LoadedConfig, config_path: Option<PathBuf>) {
+    print_settings_landing(&loaded);
+    let stdin = io::stdin();
+    let mut stdout = io::stdout();
+    let mut lines = stdin.lock().lines();
+
+    loop {
+        print!("typesymbol> ");
+        if stdout.flush().is_err() {
+            return;
+        }
+        let Some(line) = lines.next() else {
+            println!();
+            return;
+        };
+        let line = match line {
+            Ok(v) => v.trim().to_string(),
+            Err(_) => return,
+        };
+        if line.is_empty() {
+            continue;
+        }
+        match line.as_str() {
+            "exit" | "quit" | ":q" => return,
+            "help" | "?" => {
+                println!("Commands:");
+                println!("  on                           Turn TypeSymbol on now");
+                println!("  off                          Turn TypeSymbol off now");
+                println!("  config show");
+                println!("  config set <key> <value>");
+                println!("  config init [--force]");
+                println!("  daemon status|stop|enable|disable");
+                println!("  test <expression>");
+                println!("  exit");
+            }
+            "config show" => print_config(&loaded),
+            "config init" => init_config_file(Some(default_config_path()), false),
+            "config init --force" => init_config_file(Some(default_config_path()), true),
+            "daemon status" => print_daemon_status(),
+            "daemon stop" => stop_daemon(),
+            "off" => {
+                stop_daemon();
+                disable_autostart();
+            }
+            "daemon enable" => enable_autostart(config_path.clone()),
+            "daemon disable" => disable_autostart(),
+            "on" => {
+                ensure_background_service(config_path.clone());
+            }
+            "config reload" => {
+                let cli = Cli {
+                    config: config_path.clone(),
+                    command: None,
+                };
+                loaded = resolve_config(&cli);
+                println!("Reloaded config from {}", loaded.source);
+            }
+            _ => {
+                if let Some(expr) = line.strip_prefix("test ") {
+                    let engine = CoreEngine::new(loaded.config.clone());
+                    println!("{}", engine.format(expr.trim()));
+                } else if let Some(rest) = line.strip_prefix("config set ") {
+                    let mut parts = rest.splitn(2, ' ');
+                    let key = parts.next().unwrap_or("").trim();
+                    let value = parts.next().unwrap_or("").trim();
+                    if key.is_empty() || value.is_empty() {
+                        eprintln!("Usage: config set <key> <value>");
+                    } else {
+                        set_config_value(config_path.clone(), key, value);
+                        let cli = Cli {
+                            config: config_path.clone(),
+                            command: None,
+                        };
+                        loaded = resolve_config(&cli);
+                    }
+                } else {
+                    println!("Unknown command. Type 'help'.");
+                }
+            }
+        }
+    }
+}
+
+fn print_settings_landing(loaded: &LoadedConfig) {
+    println!("TypeSymbol");
+    println!("----------------------------------------");
+    println!("Service: {}", if read_live_pid().is_some() { "ON" } else { "OFF" });
+    println!("Config: {}", loaded.source);
+    println!("Trigger: {}", loaded.config.trigger_key);
+    println!("----------------------------------------");
+    println!("Quick commands:");
+    println!("  on              start background daemon");
+    println!("  off             stop daemon");
+    println!("  config show     view active config");
+    println!("  help            show all commands");
+    println!("  exit            close settings shell");
+    println!("----------------------------------------");
 }
 
 fn default_config_path() -> PathBuf {
@@ -291,6 +383,10 @@ fn daemon_pid_path() -> PathBuf {
     state_dir().join("daemon.pid")
 }
 
+fn daemon_lock_path() -> PathBuf {
+    state_dir().join("daemon.lock")
+}
+
 fn daemon_log_path() -> PathBuf {
     state_dir().join("daemon.log")
 }
@@ -316,6 +412,36 @@ fn state_dir() -> PathBuf {
 fn write_pid_file(pid: u32) -> io::Result<()> {
     let path = daemon_pid_path();
     fs::write(path, pid.to_string())
+}
+
+fn acquire_daemon_lock() -> Result<fs::File, String> {
+    let path = daemon_lock_path();
+    let lock = fs::OpenOptions::new()
+        .create(true)
+        .read(true)
+        .write(true)
+        .open(&path)
+        .map_err(|err| format!("Failed to open daemon lock {}: {}", path.display(), err))?;
+    lock.try_lock_exclusive().map_err(|_| {
+        "Another TypeSymbol daemon instance is already running.".to_string()
+    })?;
+    Ok(lock)
+}
+
+fn run_daemon_single_instance(config: TypeSymbolConfig) {
+    let _lock = match acquire_daemon_lock() {
+        Ok(lock) => lock,
+        Err(err) => {
+            eprintln!("{}", err);
+            return;
+        }
+    };
+
+    let pid = process::id();
+    if let Err(err) = write_pid_file(pid) {
+        eprintln!("Warning: failed to write pid file: {}", err);
+    }
+    typesymbol_daemon::run(config);
 }
 
 fn read_pid_file() -> Option<u32> {
@@ -345,12 +471,12 @@ fn read_live_pid() -> Option<u32> {
     }
 }
 
-fn start_daemon_background(config_path: Option<PathBuf>) {
+fn start_daemon_background(config_path: Option<PathBuf>) -> bool {
     let exe = match std::env::current_exe() {
         Ok(p) => p,
         Err(err) => {
             eprintln!("Failed to resolve executable path: {}", err);
-            process::exit(1);
+            return false;
         }
     };
 
@@ -363,14 +489,14 @@ fn start_daemon_background(config_path: Option<PathBuf>) {
         Ok(f) => f,
         Err(err) => {
             eprintln!("Failed to open daemon log {}: {}", log_path.display(), err);
-            process::exit(1);
+            return false;
         }
     };
     let log_err = match log.try_clone() {
         Ok(f) => f,
         Err(err) => {
             eprintln!("Failed to duplicate daemon log handle: {}", err);
-            process::exit(1);
+            return false;
         }
     };
 
@@ -391,10 +517,11 @@ fn start_daemon_background(config_path: Option<PathBuf>) {
                 child.id()
             );
             println!("Logs: {}", log_path.display());
+            true
         }
         Err(err) => {
             eprintln!("Failed to start daemon in background: {}", err);
-            process::exit(1);
+            false
         }
     }
 }
@@ -624,270 +751,6 @@ fn run_app_mode(config: TypeSymbolConfig) {
     }
 }
 
-fn run_shell_mode(loaded: LoadedConfig, config_path: Option<PathBuf>) {
-    let mut loaded = loaded;
-    print_shell_landing(&loaded);
-
-    let commands = shell_commands();
-    let mut rl = match Editor::<ShellHelper, rustyline::history::DefaultHistory>::new() {
-        Ok(ed) => ed,
-        Err(err) => {
-            eprintln!("Failed to initialize shell editor: {}", err);
-            return;
-        }
-    };
-    rl.set_helper(Some(ShellHelper { commands }));
-    let _ = rl.load_history(&shell_history_path());
-
-    loop {
-        match rl.readline("typesymbol> ") {
-            Ok(input) => {
-                let line = input.trim().to_string();
-                if line.is_empty() {
-                    continue;
-                }
-                let _ = rl.add_history_entry(line.as_str());
-
-                match line.as_str() {
-                    "exit" | "quit" | ":q" => {
-                        let _ = rl.save_history(&shell_history_path());
-                        println!("Bye.");
-                        return;
-                    }
-                    "help" | "?" => print_shell_help(),
-                    "config reload" => {
-                        let cli = Cli {
-                            config: config_path.clone(),
-                            command: None,
-                        };
-                        loaded = resolve_config(&cli);
-                        println!("Reloaded config from {}", loaded.source);
-                    }
-                    _ => {
-                        if let Some(expr) = line.strip_prefix("test ") {
-                            let engine = CoreEngine::new(loaded.config.clone());
-                            println!("{}", engine.format(expr.trim()));
-                        } else if line == "app" {
-                            run_app_mode(loaded.config.clone());
-                        } else if line == "daemon start" {
-                            println!("Starting daemon...");
-                            let pid = process::id();
-                            if let Err(err) = write_pid_file(pid) {
-                                eprintln!("Warning: failed to write pid file: {}", err);
-                            }
-                            typesymbol_daemon::run(loaded.config.clone());
-                        } else if line == "daemon start --background" {
-                            if let Some(pid) = read_live_pid() {
-                                eprintln!("TypeSymbol daemon already running (pid {}).", pid);
-                            } else {
-                                start_daemon_background(config_path.clone());
-                            }
-                        } else if line == "daemon stop" {
-                            stop_daemon();
-                        } else if line == "daemon status" {
-                            print_daemon_status();
-                        } else if line == "daemon enable" {
-                            enable_autostart(config_path.clone());
-                        } else if line == "daemon disable" {
-                            disable_autostart();
-                        } else if line == "config show" {
-                            print_config(&loaded);
-                        } else if let Some(rest) = line.strip_prefix("config set ") {
-                            let mut parts = rest.splitn(2, ' ');
-                            let key = parts.next().unwrap_or("").trim();
-                            let value = parts.next().unwrap_or("").trim();
-                            if key.is_empty() || value.is_empty() {
-                                eprintln!("Usage: config set <key> <value>");
-                            } else {
-                                set_config_value(config_path.clone(), key, value);
-                                let cli = Cli {
-                                    config: config_path.clone(),
-                                    command: None,
-                                };
-                                loaded = resolve_config(&cli);
-                            }
-                        } else if line == "config init" {
-                            init_config_file(Some(default_config_path()), false);
-                        } else if line == "config init --force" {
-                            init_config_file(Some(default_config_path()), true);
-                        } else {
-                            println!("Unknown command: {}", line);
-                            println!("Type 'help' to see available commands.");
-                        }
-                    }
-                }
-            }
-            Err(ReadlineError::Interrupted) => {
-                println!("Use 'exit' to quit.");
-            }
-            Err(ReadlineError::Eof) => {
-                let _ = rl.save_history(&shell_history_path());
-                println!();
-                return;
-            }
-            Err(err) => {
-                eprintln!("Shell input error: {}", err);
-                return;
-            }
-        }
-    }
-}
-
-#[derive(Clone)]
-struct ShellHelper {
-    commands: Vec<String>,
-}
-
-impl Helper for ShellHelper {}
-impl Hinter for ShellHelper {
-    type Hint = String;
-}
-impl Highlighter for ShellHelper {}
-impl Validator for ShellHelper {}
-impl Completer for ShellHelper {
-    type Candidate = Pair;
-
-    fn complete(
-        &self,
-        line: &str,
-        pos: usize,
-        _ctx: &Context<'_>,
-    ) -> rustyline::Result<(usize, Vec<Pair>)> {
-        let prefix = &line[..pos];
-        let start = prefix.rfind(' ').map(|i| i + 1).unwrap_or(0);
-        let token = &prefix[start..];
-        let pairs = self
-            .commands
-            .iter()
-            .filter(|cmd| cmd.starts_with(token))
-            .map(|cmd| Pair {
-                display: cmd.clone(),
-                replacement: cmd.clone(),
-            })
-            .collect::<Vec<_>>();
-        Ok((start, pairs))
-    }
-}
-
-fn shell_history_path() -> PathBuf {
-    state_dir().join("shell-history.txt")
-}
-
-fn shell_commands() -> Vec<String> {
-    vec![
-        "help".to_string(),
-        "test ".to_string(),
-        "app".to_string(),
-        "daemon start".to_string(),
-        "daemon start --background".to_string(),
-        "daemon status".to_string(),
-        "daemon stop".to_string(),
-        "daemon enable".to_string(),
-        "daemon disable".to_string(),
-        "config show".to_string(),
-        "config set ".to_string(),
-        "config init".to_string(),
-        "config init --force".to_string(),
-        "config reload".to_string(),
-        "exit".to_string(),
-    ]
-}
-
-fn print_shell_help() {
-    println!("Commands:");
-    println!("  help                         Show this help");
-    println!("  test <expression>            Format a single expression");
-    println!("  app                          Enter expression REPL mode");
-    println!("  daemon start                 Run daemon in foreground");
-    println!("  daemon start --background    Run daemon in background");
-    println!("  daemon status                Show daemon status");
-    println!("  daemon stop                  Stop running daemon");
-    println!("  daemon enable                Enable autostart at login");
-    println!("  daemon disable               Disable autostart at login");
-    println!("  config show                  Display active config summary");
-    println!("  config set <key> <value>     Update config in TOML");
-    println!("  config init                  Write default config");
-    println!("  config init --force          Overwrite default config");
-    println!("  config reload                Reload config from --config/defaults");
-    println!("  exit                         Quit the shell");
-}
-
-fn print_shell_landing(loaded: &LoadedConfig) {
-    render_cli_logo();
-    println!("==============================================================");
-    println!(" TypeSymbol CLI");
-    println!("--------------------------------------------------------------");
-    println!("  Type shorthand, manage daemon, and configure behavior.");
-    println!("  Config source: {}", loaded.source);
-    println!("  Trigger key: {}", loaded.config.trigger_key);
-    println!("--------------------------------------------------------------");
-    println!("  Quick Start");
-    println!("   - daemon start --background   Start in background");
-    println!("   - daemon enable               Autostart on login");
-    println!("   - test alpha -> beta          Quick conversion test");
-    println!("--------------------------------------------------------------");
-    println!("  Type 'help' to see all commands, 'exit' to quit.");
-    println!("==============================================================");
-}
-
-fn render_cli_logo() {
-    if let Some(path) = materialize_logo_file() {
-        if can_use_iterm_imgcat() {
-            let _ = Command::new("imgcat")
-                .arg("-W")
-                .arg("40")
-                .arg(&path)
-                .status();
-            return;
-        }
-        if can_use_kitty_icat() {
-            let _ = Command::new("kitty")
-                .arg("+kitten")
-                .arg("icat")
-                .arg("--silent")
-                .arg(&path)
-                .status();
-            return;
-        }
-    }
-    print_text_logo();
-}
-
-fn materialize_logo_file() -> Option<PathBuf> {
-    let path = state_dir().join("logo.png");
-    if !path.exists() && fs::write(&path, LOGO_PNG).is_err() {
-        return None;
-    }
-    Some(path)
-}
-
-fn can_use_iterm_imgcat() -> bool {
-    std::env::var("TERM_PROGRAM")
-        .map(|v| v == "iTerm.app")
-        .unwrap_or(false)
-        && Command::new("which")
-            .arg("imgcat")
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status()
-            .map(|s| s.success())
-            .unwrap_or(false)
-}
-
-fn can_use_kitty_icat() -> bool {
-    std::env::var("KITTY_WINDOW_ID").is_ok()
-        && Command::new("which")
-            .arg("kitty")
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status()
-            .map(|s| s.success())
-            .unwrap_or(false)
-}
-
-fn print_text_logo() {
-    println!("\x1b[1;37;44m  T∫  \x1b[0m");
-}
 
 fn print_config(loaded: &LoadedConfig) {
     let config = &loaded.config;

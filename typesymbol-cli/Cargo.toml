@@ -12,5 +12,5 @@ typesymbol-core = { path = "../typesymbol-core" }
 typesymbol-config = { path = "../typesymbol-config" }
 typesymbol-daemon = { path = "../typesymbol-daemon" }
 clap = { version = "4.5", features = ["derive"] }
-rustyline = "14"
 toml = "0.8"
+fs2 = "0.4"
