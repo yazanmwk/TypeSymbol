@@ -86,8 +86,10 @@ impl CoreEngine {
                 .expect("valid regex"),
             forall_regex: Regex::new(r"(?i)\bfor\s+all\b|\bforall\b").expect("valid regex"),
             exists_regex: Regex::new(r"(?i)\bthere\s+exists\b|\bexists\b").expect("valid regex"),
-            in_regex: Regex::new(r"(?i)\bin\b").expect("valid regex"),
-            not_in_regex: Regex::new(r"(?i)\bnot\s+in\b").expect("valid regex"),
+            in_regex: Regex::new(r"(?i)\b([A-Za-z0-9_]{1,3})\s+in\s+([A-Z][A-Za-z0-9_]*)\b")
+                .expect("valid regex"),
+            not_in_regex: Regex::new(r"(?i)\b([A-Za-z0-9_]{1,3})\s+not\s+in\s+([A-Z][A-Za-z0-9_]*)\b")
+                .expect("valid regex"),
             subseteq_regex: Regex::new(r"(?i)\bsubset\s*eq\b|\bsubseteq\b").expect("valid regex"),
             union_regex: Regex::new(r"(?i)\bunion\b").expect("valid regex"),
             intersection_regex: Regex::new(r"(?i)\bintersection\b").expect("valid regex"),
@@ -362,7 +364,9 @@ impl CoreEngine {
 
         output = self
             .not_in_regex
-            .replace_all(&output, "∉")
+            .replace_all(&output, |caps: &regex::Captures| {
+                format!("{} ∉ {}", &caps[1], &caps[2])
+            })
             .to_string();
         output = self
             .subseteq_regex
@@ -386,7 +390,9 @@ impl CoreEngine {
             .to_string();
         output = self
             .in_regex
-            .replace_all(&output, "∈")
+            .replace_all(&output, |caps: &regex::Captures| {
+                format!("{} ∈ {}", &caps[1], &caps[2])
+            })
             .to_string();
 
         output
@@ -778,6 +784,10 @@ mod tests {
         assert_eq!(
             engine.format("variance of X"),
             "Var(X)"
+        );
+        assert_eq!(
+            engine.format("when i type in it"),
+            "when i type in it"
         );
     }
 }
