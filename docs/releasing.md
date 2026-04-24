@@ -41,7 +41,7 @@ Output:
 Then copy it into your tap repository under:
 - `Formula/typesymbol.rb`
 - Standard tap for this project: `yazanmwk/homebrew-tap`
-- Setup guide: `HOMEBREW_TAP_SETUP.md`
+- Setup guide: [homebrew-tap.md](homebrew-tap.md)
 
 ### Winget manifest generation
 
@@ -85,4 +85,5 @@ Before automation can submit PRs to `microsoft/winget-pkgs`:
 After this setup, each published release (`vX.Y.Z`) will automatically open a WinGet update PR.
 
 Detailed guide:
-- `WINGET_SETUP.md`
+
+- [winget.md](winget.md)

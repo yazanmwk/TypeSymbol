@@ -1,12 +1,12 @@
 [workspace]
 resolver = "2"
 members = [
-    "typesymbol-core",
-    "typesymbol-config",
-    "typesymbol-cli",
-    "typesymbol-daemon",
-    "typesymbol-platform-macos",
-    "typesymbol-platform-windows"
+    "crates/typesymbol-core",
+    "crates/typesymbol-config",
+    "crates/typesymbol-cli",
+    "crates/typesymbol-daemon",
+    "crates/typesymbol-platform-macos",
+    "crates/typesymbol-platform-windows"
 ]
 
 [workspace.package]

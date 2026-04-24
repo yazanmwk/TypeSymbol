@@ -24,7 +24,7 @@ cargo test
 
 ## Packaging scripts and forks
 
-Release automation and local packaging scripts assume a default GitHub org/user. If you publish from a **fork**, set environment variables when generating manifests (see [RELEASING.md](RELEASING.md)):
+Release automation and local packaging scripts assume a default GitHub org/user. If you publish from a **fork**, set environment variables when generating manifests (see [releasing.md](releasing.md)):
 
 | Variable | Used by | Purpose |
 | --- | --- | --- |
@@ -38,8 +38,8 @@ For **WinGet**, paths and the fork to push to are derived from `github.repositor
 
 ## Product context
 
-A detailed product spec lives in [docs/PRD.md](docs/PRD.md).
+A detailed product spec lives in [PRD.md](PRD.md).
 
 ## License
 
-By contributing, you agree that your contributions are licensed under the [MIT License](LICENSE).
+By contributing, you agree that your contributions are licensed under the [MIT License](../LICENSE).

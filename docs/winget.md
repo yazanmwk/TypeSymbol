@@ -40,14 +40,11 @@ In `yazanmwk/TypeSymbol`:
 4. Value: paste token from Step 2.
 5. Save.
 
-## Step 4: Verify workflow fork target
+## Step 4: Verify workflow (fork target is automatic)
 
-Open `.github/workflows/publish-winget.yml` and confirm:
+Open `.github/workflows/publish-winget.yml` and confirm `WINGET_PKGS_REPO` is `microsoft/winget-pkgs`.
 
-- `WINGET_PKGS_REPO` is `microsoft/winget-pkgs`
-- `WINGET_PKGS_FORK` matches your fork (example: `yazanmwk/winget-pkgs`)
-
-If your fork name differs, update `WINGET_PKGS_FORK`.
+The job derives `WINGET_PKGS_FORK` and manifest paths from `github.repository_owner` (your `winget-pkgs` fork must be named `winget-pkgs` under the same account as this repo). If you use a nonstandard fork name, adjust the **Derive WinGet paths** step in that workflow.
 
 ## Step 5: Ensure package identifier stays stable
 
@@ -108,7 +105,7 @@ winget install --id yazanmwk.TypeSymbol
 
 - **No PR created**
   - Verify `WINGET_PKGS_TOKEN` exists and is valid.
-  - Verify `WINGET_PKGS_FORK` is correct.
+  - Ensure your `winget-pkgs` fork exists as `github.repository_owner/winget-pkgs` (see workflow).
 - **Checksum error**
   - Ensure release has `checksums.txt` and includes the Windows zip line.
 - **Branch push failure**

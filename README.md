@@ -1,7 +1,7 @@
 <div align="center">
 
 <a href="https://github.com/yazanmwk/TypeSymbol">
-  <img src="TypeSymbol_logo.png" alt="TypeSymbol" width="112" height="112" />
+  <img src="docs/assets/TypeSymbol_logo.png" alt="TypeSymbol" width="112" height="112" />
 </a>
 
 <br/>
@@ -39,7 +39,7 @@
 | `int 0 -> inf x` | **∫₀^∞ x dx** |
 | `sum_(i=1)^n i^2` | **∑ᵢ₌₁ⁿ i²** |
 
-*Transforms follow your [config](INSTALL.md) (Greek, operators, integrals, sums, and more). Use `typesymbol test "..."` to preview any string.*
+*Transforms follow your [config](docs/install.md) (Greek, operators, integrals, sums, and more). Use `typesymbol test "..."` to preview any string.*
 
 ---
 
@@ -90,7 +90,7 @@ brew install typesymbol
 
 (One line: `brew install yazanmwk/tap/typesymbol`.)
 
-Tap and automation: [HOMEBREW_TAP_SETUP.md](HOMEBREW_TAP_SETUP.md).
+Tap and automation: [docs/homebrew-tap.md](docs/homebrew-tap.md).
 
 ### macOS (from source)
 
@@ -110,7 +110,7 @@ Set-ExecutionPolicy -Scope Process Bypass
 typesymbol
 ```
 
-*PATH tips and VM notes: [INSTALL.md](INSTALL.md).*
+*PATH tips and VM notes: [docs/install.md](docs/install.md).*
 
 ---
 
@@ -137,20 +137,23 @@ typesymbol daemon status
 | **System-wide** | Works across apps—not a plugin for a single editor. |
 | **Fast core** | Parser and rules run in Rust. |
 | **Hackable** | Config-driven rules; CLI + TUI for inspection and control. |
-| **Ships cleanly** | Automated [releases](RELEASING.md): GitHub binaries, [WinGet](WINGET_SETUP.md), and [Homebrew tap](HOMEBREW_TAP_SETUP.md) workflows. |
+| **Ships cleanly** | Automated [releases](docs/releasing.md): GitHub binaries, [WinGet](docs/winget.md), and [Homebrew tap](docs/homebrew-tap.md) workflows. |
 
 ---
 
 ## Repository map
 
+Rust crates live under `crates/`. Top level keeps docs, packaging, scripts, and CI.
+
 | Crate / area | Role |
 | --- | --- |
-| `typesymbol-core` | Parser, formatter, rule engine |
-| `typesymbol-config` | Config model, load/save, defaults |
-| `typesymbol-daemon` | Runtime and event pipeline |
-| `typesymbol-platform-macos` | macOS input & replacement |
-| `typesymbol-platform-windows` | Windows input & replacement |
-| `typesymbol-cli` | CLI and TUI entrypoint |
+| `crates/typesymbol-core` | Parser, formatter, rule engine |
+| `crates/typesymbol-config` | Config model, load/save, defaults |
+| `crates/typesymbol-daemon` | Runtime and event pipeline |
+| `crates/typesymbol-platform-macos` | macOS input & replacement |
+| `crates/typesymbol-platform-windows` | Windows input & replacement |
+| `crates/typesymbol-cli` | CLI and TUI entrypoint |
+| `docs/` | Install guides, releasing, security, PRD |
 | `scripts/` | Installers and packaging helpers |
 | `.github/workflows/` | Release, WinGet, Homebrew automation |
 
@@ -158,22 +161,24 @@ typesymbol daemon status
 
 ## Documentation
 
+Index of all guides: **[docs/README.md](docs/README.md)**.
+
 | Doc | What it’s for |
 | --- | --- |
-| [INSTALL.md](INSTALL.md) | Detailed install, PATH, and platform notes |
-| [RELEASING.md](RELEASING.md) | Cutting a version and release artifacts |
-| [WINGET_SETUP.md](WINGET_SETUP.md) | WinGet package maintenance |
-| [HOMEBREW_TAP_SETUP.md](HOMEBREW_TAP_SETUP.md) | Homebrew tap |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | Build from source, tests, packaging overrides for forks |
+| [docs/install.md](docs/install.md) | Detailed install, PATH, and platform notes |
+| [docs/releasing.md](docs/releasing.md) | Cutting a version and release artifacts |
+| [docs/winget.md](docs/winget.md) | WinGet package maintenance |
+| [docs/homebrew-tap.md](docs/homebrew-tap.md) | Homebrew tap |
+| [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | Build from source, tests, packaging overrides for forks |
 | [docs/PRD.md](docs/PRD.md) | Product requirements (vision and goals) |
-| [SECURITY.md](SECURITY.md) | Responsible disclosure |
+| [docs/SECURITY.md](docs/SECURITY.md) | Responsible disclosure |
 | [LICENSE](LICENSE) | MIT License |
 
 ---
 
 ## Security
 
-Do not post suspected vulnerabilities in public issues first. See **[SECURITY.md](SECURITY.md)** for how to report them responsibly.
+Do not post suspected vulnerabilities in public issues first. See **[docs/SECURITY.md](docs/SECURITY.md)** for how to report them responsibly.
 
 ---
 

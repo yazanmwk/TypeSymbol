@@ -13,7 +13,7 @@ brew tap yazanmwk/tap
 brew install typesymbol
 ```
 
-or `brew install yazanmwk/tap/typesymbol`. For tap setup and version bumps, see [HOMEBREW_TAP_SETUP.md](HOMEBREW_TAP_SETUP.md).
+or `brew install yazanmwk/tap/typesymbol`. For tap setup and version bumps, see [homebrew-tap.md](homebrew-tap.md).
 
 ### Build from this repository
 
