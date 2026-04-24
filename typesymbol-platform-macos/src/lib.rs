@@ -1,4 +1,4 @@
-use rdev::{listen, Event, EventType, Key};
+use rdev::{grab, Event, EventType, Key};
 use std::process::Command;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
@@ -13,13 +13,20 @@ static SUPPRESS_EVENTS: AtomicBool = AtomicBool::new(false);
 pub struct MacOSAdapter {
     config: TypeSymbolConfig,
     is_dormant: Arc<AtomicBool>,
+    ctrl_pressed: Arc<AtomicBool>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PlatformEvent {
     Char(char),
     Backspace,
+    AcceptTrigger,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum TriggerKind {
     Enter,
+    CtrlSpace,
 }
 
 impl MacOSAdapter {
@@ -27,12 +34,13 @@ impl MacOSAdapter {
         Self {
             config,
             is_dormant: Arc::new(AtomicBool::new(false)),
+            ctrl_pressed: Arc::new(AtomicBool::new(false)),
         }
     }
 
-    pub fn start_listening<F>(&mut self, mut on_event: F)
+    pub fn start_listening<F>(&mut self, on_event: F)
     where
-        F: FnMut(PlatformEvent) + Send + 'static,
+        F: Fn(PlatformEvent) -> bool + Send + Sync + 'static,
     {
         println!("MacOSAdapter: Starting event loop listener...");
         println!("MacOSAdapter: trigger key = {}", self.config.trigger_key);
@@ -40,30 +48,63 @@ impl MacOSAdapter {
             "MacOSAdapter: exclusions active for {} bundle identifiers",
             self.config.excluded_apps.len()
         );
+        let trigger = trigger_kind_from_config(&self.config.trigger_key);
 
         self.spawn_active_app_monitor();
 
         let is_dormant = Arc::clone(&self.is_dormant);
-        if let Err(error) = listen(move |event: Event| {
+        let ctrl_pressed = Arc::clone(&self.ctrl_pressed);
+        if let Err(error) = grab(move |event: Event| {
             if is_dormant.load(Ordering::Relaxed) || SUPPRESS_EVENTS.load(Ordering::Relaxed) {
-                return;
+                return Some(event);
             }
 
             match event.event_type {
-                EventType::KeyPress(Key::Backspace) => on_event(PlatformEvent::Backspace),
-                EventType::KeyPress(Key::Return) => on_event(PlatformEvent::Enter),
-                EventType::KeyPress(Key::Space) => on_event(PlatformEvent::Char(' ')),
+                EventType::KeyPress(Key::ControlLeft) | EventType::KeyPress(Key::ControlRight) => {
+                    ctrl_pressed.store(true, Ordering::Relaxed);
+                    Some(event)
+                }
+                EventType::KeyRelease(Key::ControlLeft)
+                | EventType::KeyRelease(Key::ControlRight) => {
+                    ctrl_pressed.store(false, Ordering::Relaxed);
+                    Some(event)
+                }
+                EventType::KeyPress(Key::Backspace) => {
+                    on_event(PlatformEvent::Backspace);
+                    Some(event)
+                }
+                EventType::KeyPress(Key::Return) => {
+                    if trigger == TriggerKind::Enter {
+                        if on_event(PlatformEvent::AcceptTrigger) {
+                            None
+                        } else {
+                            Some(event)
+                        }
+                    } else {
+                        Some(event)
+                    }
+                }
+                EventType::KeyPress(Key::Space) => {
+                    if trigger == TriggerKind::CtrlSpace && ctrl_pressed.load(Ordering::Relaxed) {
+                        let _ = on_event(PlatformEvent::AcceptTrigger);
+                        None
+                    } else {
+                        on_event(PlatformEvent::Char(' '));
+                        Some(event)
+                    }
+                }
                 EventType::KeyPress(_) => {
-                    if let Some(text) = event.name {
+                    if let Some(ref text) = event.name {
                         for ch in text.chars() {
                             on_event(PlatformEvent::Char(ch));
                         }
                     }
+                    Some(event)
                 }
-                _ => {}
+                _ => Some(event),
             }
         }) {
-            eprintln!("MacOSAdapter listener failed: {error:?}");
+            eprintln!("MacOSAdapter grab listener failed: {error:?}");
         }
     }
 
@@ -152,4 +193,11 @@ fn escape_applescript_string(input: &str) -> String {
         .replace('\\', "\\\\")
         .replace('\"', "\\\"")
         .replace('\n', "\\n")
+}
+
+fn trigger_kind_from_config(raw: &str) -> TriggerKind {
+    match raw.trim().to_lowercase().as_str() {
+        "ctrl-space" | "control-space" | "ctrl+space" | "control+space" => TriggerKind::CtrlSpace,
+        _ => TriggerKind::Enter,
+    }
 }

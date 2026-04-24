@@ -1,37 +1,84 @@
 use typesymbol_config::TypeSymbolConfig;
 use typesymbol_core::CoreEngine;
 use typesymbol_platform_macos::{inject_replacement, MacOSAdapter, PlatformEvent};
+use std::sync::{Arc, Mutex};
 
 pub fn run(config: TypeSymbolConfig) {
     println!("Starting TypeSymbol daemon with config: {:?}", config.mode);
     println!("App Exclusions loaded: {:?}", config.excluded_apps);
 
-    let mut daemon = TypeSymbolDaemon::new(config.clone());
+    let trigger_label = match config.trigger_key.trim().to_lowercase().as_str() {
+        "ctrl-space" | "control-space" | "ctrl+space" | "control+space" => "Ctrl+Space",
+        _ => "Enter",
+    };
+
+    let state = Arc::new(Mutex::new(DaemonState {
+        daemon: TypeSymbolDaemon::new(config.clone()),
+        last_prompt: None,
+        trigger_label,
+    }));
     let mut adapter = MacOSAdapter::new(config);
-    adapter.start_listening(move |event| match event {
-        PlatformEvent::Char(ch) => {
-            daemon.on_char_typed(ch);
-            if let Some(candidate) = daemon.preview_replacement() {
-                println!("Press Enter for {}", candidate.replacement);
-            }
-        }
-        PlatformEvent::Backspace => daemon.on_backspace(),
-        PlatformEvent::Enter => {
-            if let Some(candidate) = daemon.preview_replacement() {
-                match inject_replacement(&candidate.original, &candidate.replacement, 1) {
-                    Ok(()) => {
-                        println!("Replaced: {} -> {}", candidate.original, candidate.replacement);
-                        daemon.reset_buffer();
-                    }
-                    Err(err) => {
-                        eprintln!("Replacement injection failed: {}", err);
-                    }
-                }
-            } else {
-                daemon.reset_buffer();
-            }
-        }
+    adapter.start_listening(move |event| {
+        let mut state = match state.lock() {
+            Ok(guard) => guard,
+            Err(_) => return false,
+        };
+        state.handle_event(event)
     });
+}
+
+struct DaemonState {
+    daemon: TypeSymbolDaemon,
+    last_prompt: Option<String>,
+    trigger_label: &'static str,
+}
+
+impl DaemonState {
+    fn handle_event(&mut self, event: PlatformEvent) -> bool {
+        match event {
+            PlatformEvent::Char(ch) => {
+                self.daemon.on_char_typed(ch);
+                self.refresh_prompt();
+                false
+            }
+            PlatformEvent::Backspace => {
+                self.daemon.on_backspace();
+                self.refresh_prompt();
+                false
+            }
+            PlatformEvent::AcceptTrigger => {
+                if let Some(candidate) = self.daemon.preview_replacement() {
+                    match inject_replacement(&candidate.original, &candidate.replacement, 0) {
+                        Ok(()) => {
+                            println!("Replaced: {} -> {}", candidate.original, candidate.replacement);
+                            self.daemon.reset_buffer();
+                            self.last_prompt = None;
+                            true
+                        }
+                        Err(err) => {
+                            eprintln!("Replacement injection failed: {}", err);
+                            false
+                        }
+                    }
+                } else {
+                    self.daemon.reset_buffer();
+                    self.last_prompt = None;
+                    false
+                }
+            }
+        }
+    }
+
+    fn refresh_prompt(&mut self) {
+        if let Some(candidate) = self.daemon.preview_replacement() {
+            if self.last_prompt.as_deref() != Some(candidate.replacement.as_str()) {
+                println!("Press {} for {}", self.trigger_label, candidate.replacement);
+                self.last_prompt = Some(candidate.replacement);
+            }
+        } else {
+            self.last_prompt = None;
+        }
+    }
 }
 
 pub struct TypeSymbolDaemon {

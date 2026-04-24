@@ -34,7 +34,7 @@ impl Default for TypeSymbolConfig {
         Self {
             mode: "unicode".to_string(),
             trigger_mode: "manual".to_string(),
-            trigger_key: "ctrl-space".to_string(),
+            trigger_key: "enter".to_string(),
             live_suggestions: false,
             auto_replace_safe_rules: true,
             features: FeatureSet {
@@ -108,7 +108,7 @@ mod tests {
         let raw = r#"
 mode = "unicode"
 trigger_mode = "manual"
-trigger_key = "ctrl-space"
+trigger_key = "enter"
 live_suggestions = false
 auto_replace_safe_rules = true
 

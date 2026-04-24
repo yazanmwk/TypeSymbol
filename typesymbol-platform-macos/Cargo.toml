@@ -5,4 +5,4 @@ edition = "2021"
 
 [dependencies]
 typesymbol-config = { path = "../typesymbol-config" }
-rdev = "0.5"
+rdev = { version = "0.5", features = ["unstable_grab"] }
