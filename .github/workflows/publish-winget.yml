@@ -6,13 +6,19 @@ on:
   workflow_run:
     workflows: ["Release Binaries"]
     types: [completed]
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag to publish (must match a GitHub release with checksums.txt), e.g. v0.1.9"
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 jobs:
   update-winget:
-    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'release' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
     runs-on: ubuntu-latest
     env:
       WINGET_PKGS_REPO: microsoft/winget-pkgs
@@ -20,14 +26,28 @@ jobs:
       PACKAGE_IDENTIFIER: yazanmwk.TypeSymbol
       WINGET_PATH_PREFIX: manifests/y/yazanmwk/TypeSymbol
     steps:
+      - name: Resolve release tag
+        id: meta
+        run: |
+          EVENT="${{ github.event_name }}"
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            TAG="${{ github.event.inputs.release_tag }}"
+          elif [ "$EVENT" = "release" ]; then
+            TAG="${{ github.event.release.tag_name }}"
+          else
+            TAG="${{ github.event.workflow_run.head_branch }}"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Using release tag: $TAG"
+
       - name: Checkout TypeSymbol repo
         uses: actions/checkout@v4
 
       - name: Download checksums from release
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.meta.outputs.tag }}
         run: |
-          TAG="${{ github.event.release.tag_name || github.event.workflow_run.head_branch }}"
           echo "Waiting for checksums.txt on release $TAG..."
           for i in {1..30}; do
             if gh release view "$TAG" --repo "${{ github.repository }}" --json assets --jq '[.assets[].name] | index("checksums.txt") != null' | grep -q true; then
@@ -49,7 +69,7 @@ jobs:
       - name: Parse release version
         id: version
         run: |
-          TAG="${{ github.event.release.tag_name || github.event.workflow_run.head_branch }}"
+          TAG="${{ steps.meta.outputs.tag }}"
           VERSION="${TAG#v}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
