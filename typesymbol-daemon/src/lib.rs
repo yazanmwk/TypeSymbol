@@ -117,7 +117,7 @@ impl TypeSymbolDaemon {
             let start = chars.len() - len;
             let suffix: String = chars[start..].iter().collect();
             let formatted = self.engine.format(&suffix);
-            if formatted != suffix {
+            if formatted != suffix && is_high_confidence_math_replacement(&suffix, &formatted) {
                 return Some(ReplacementCandidate {
                     original: suffix,
                     replacement: formatted,
@@ -139,6 +139,91 @@ impl TypeSymbolDaemon {
         let drop_count = count - self.max_buffer_chars;
         self.text_buffer = self.text_buffer.chars().skip(drop_count).collect();
     }
+}
+
+fn is_high_confidence_math_replacement(original: &str, replacement: &str) -> bool {
+    let original_trimmed = original.trim();
+    if original_trimmed.is_empty() || original_trimmed.eq_ignore_ascii_case("in") {
+        return false;
+    }
+
+    let lower = original_trimmed.to_lowercase();
+    let has_keyword = [
+        "alpha",
+        "beta",
+        "gamma",
+        "theta",
+        "lambda",
+        "pi",
+        "infinity",
+        "integral",
+        "int ",
+        "sum",
+        "summation",
+        "product",
+        "sqrt",
+        "laplace",
+        "fourier",
+        "limit",
+        "lim ",
+        "partial",
+        "probability",
+        "expected value",
+        "variance",
+        "for all",
+        "forall",
+        "there exists",
+        "exists",
+        "subset",
+        "union",
+        "intersection",
+        "not in",
+        "power of",
+    ]
+    .iter()
+    .any(|token| lower.contains(token));
+
+    let has_operator_syntax = ["->", "<-", "<->", "!=", "<=", ">=", "+-", "^", "_"]
+        .iter()
+        .any(|token| original_trimmed.contains(token));
+
+    let has_math_output_symbol = replacement.chars().any(|ch| {
+        matches!(
+            ch,
+            '∫'
+                | '∑'
+                | '∏'
+                | '√'
+                | '∞'
+                | 'ℒ'
+                | 'ℱ'
+                | '∂'
+                | '∀'
+                | '∃'
+                | '⊆'
+                | '∪'
+                | '∩'
+                | '∉'
+                | '≤'
+                | '≥'
+                | '≠'
+                | '→'
+                | '←'
+                | '↔'
+                | '±'
+                | 'α'
+                | 'β'
+                | 'γ'
+                | 'θ'
+                | 'λ'
+                | 'π'
+        )
+    });
+
+    let words: Vec<&str> = lower.split_whitespace().collect();
+    let has_membership_phrase = words.len() >= 3 && words.contains(&"in");
+
+    has_keyword || has_operator_syntax || has_math_output_symbol || has_membership_phrase
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -170,5 +255,24 @@ mod tests {
             daemon.on_char_typed(ch);
         }
         assert!(daemon.preview_replacement().is_none());
+    }
+
+    #[test]
+    fn does_not_replace_common_text_suffixes() {
+        let mut daemon = TypeSymbolDaemon::new(TypeSymbolConfig::default());
+        for ch in "check in".chars() {
+            daemon.on_char_typed(ch);
+        }
+        assert!(daemon.preview_replacement().is_none());
+    }
+
+    #[test]
+    fn still_replaces_set_membership_phrases() {
+        let mut daemon = TypeSymbolDaemon::new(TypeSymbolConfig::default());
+        for ch in "x in A".chars() {
+            daemon.on_char_typed(ch);
+        }
+        let candidate = daemon.preview_replacement().expect("candidate exists");
+        assert_eq!(candidate.replacement, "x ∈ A");
     }
 }
