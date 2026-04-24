@@ -1,0 +1,13 @@
+PackageIdentifier: yazanmwk.TypeSymbol
+PackageVersion: "__VERSION__"
+InstallerType: zip
+NestedInstallerType: portable
+NestedInstallerFiles:
+  - RelativeFilePath: typesymbol.exe
+    PortableCommandAlias: typesymbol
+Installers:
+  - Architecture: x64
+    InstallerUrl: "__URL_WINDOWS_X64__"
+    InstallerSha256: "__SHA_WINDOWS_X64__"
+ManifestType: installer
+ManifestVersion: 1.9.0

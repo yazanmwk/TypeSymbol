@@ -1,0 +1,23 @@
+class Typesymbol < Formula
+  desc "System-wide math shorthand daemon"
+  homepage "https://github.com/yazanmwk/TypeSymbol"
+  version "__VERSION__"
+
+  on_macos do
+    if Hardware::CPU.arm?
+      url "__URL_MACOS_ARM__"
+      sha256 "__SHA_MACOS_ARM__"
+    else
+      url "__URL_MACOS_X64__"
+      sha256 "__SHA_MACOS_X64__"
+    end
+  end
+
+  def install
+    bin.install "typesymbol"
+  end
+
+  test do
+    assert_match "α → β", shell_output("#{bin}/typesymbol test \"alpha -> beta\"")
+  end
+end

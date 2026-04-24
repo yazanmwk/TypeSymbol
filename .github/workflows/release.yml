@@ -1,0 +1,120 @@
+name: Release Binaries
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos-intel:
+    name: Build macOS Intel
+    runs-on: macos-13
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build release binary
+        run: cargo build --release -p typesymbol-cli
+
+      - name: Package artifact
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          NAME="typesymbol-${TAG}-x86_64-apple-darwin"
+          mkdir -p dist
+          cp target/release/typesymbol "dist/typesymbol"
+          chmod +x "dist/typesymbol"
+          tar -C dist -czf "${NAME}.tar.gz" typesymbol
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: typesymbol-x86_64-apple-darwin
+          path: typesymbol-*.tar.gz
+
+  build-macos-arm:
+    name: Build macOS Apple Silicon
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build release binary
+        run: cargo build --release -p typesymbol-cli
+
+      - name: Package artifact
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          NAME="typesymbol-${TAG}-aarch64-apple-darwin"
+          mkdir -p dist
+          cp target/release/typesymbol "dist/typesymbol"
+          chmod +x "dist/typesymbol"
+          tar -C dist -czf "${NAME}.tar.gz" typesymbol
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: typesymbol-aarch64-apple-darwin
+          path: typesymbol-*.tar.gz
+
+  build-windows:
+    name: Build Windows
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build release binary
+        run: cargo build --release -p typesymbol-cli
+
+      - name: Package artifact
+        shell: pwsh
+        run: |
+          $tag = "${env:GITHUB_REF_NAME}"
+          $name = "typesymbol-$tag-x86_64-pc-windows-msvc"
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Copy-Item target/release/typesymbol.exe dist/typesymbol.exe -Force
+          Compress-Archive -Path dist/typesymbol.exe -DestinationPath "$name.zip" -Force
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: typesymbol-x86_64-pc-windows-msvc
+          path: typesymbol-*.zip
+
+  publish-release:
+    name: Publish GitHub Release
+    runs-on: ubuntu-latest
+    needs:
+      - build-macos-intel
+      - build-macos-arm
+      - build-windows
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Generate checksums
+        run: |
+          cd release-assets
+          sha256sum typesymbol-* > checksums.txt
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release-assets/typesymbol-*
+            release-assets/checksums.txt

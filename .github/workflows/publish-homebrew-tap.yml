@@ -1,0 +1,70 @@
+name: Publish Homebrew Tap
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  update-homebrew-tap:
+    runs-on: ubuntu-latest
+    env:
+      TAP_REPO: yazanmwk/homebrew-tap
+    steps:
+      - name: Checkout TypeSymbol repo
+        uses: actions/checkout@v4
+
+      - name: Download checksums from release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "${{ github.event.release.tag_name }}" \
+            --repo "${{ github.repository }}" \
+            --pattern "checksums.txt" \
+            --dir .
+
+      - name: Parse release version
+        id: version
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          VERSION="${TAG#v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Generate formula
+        run: |
+          chmod +x scripts/generate-homebrew-formula.sh
+          ./scripts/generate-homebrew-formula.sh "${{ steps.version.outputs.version }}" ./checksums.txt
+
+      - name: Checkout homebrew tap repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.TAP_REPO }}
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: tap-repo
+
+      - name: Copy formula into tap repo
+        run: |
+          mkdir -p tap-repo/Formula
+          cp packaging/homebrew/typesymbol.rb tap-repo/Formula/typesymbol.rb
+
+      - name: Create PR in homebrew tap repo
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: tap-repo
+          branch: automation/homebrew-typesymbol-${{ steps.version.outputs.version }}
+          base: main
+          title: "Update TypeSymbol formula to v${{ steps.version.outputs.version }}"
+          body: |
+            Automated Homebrew formula update for TypeSymbol v${{ steps.version.outputs.version }}.
+          labels: |
+            automated
+            homebrew
+          commit-message: "chore(homebrew): update typesymbol formula to v${{ steps.version.outputs.version }}"
+          author: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
+          committer: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
+          add-paths: |
+            Formula/typesymbol.rb
+
