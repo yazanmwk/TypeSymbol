@@ -432,7 +432,7 @@ fn handle_config_action(app: &mut TuiApp) -> io::Result<()> {
 fn draw_tui(frame: &mut ratatui::Frame<'_>, app: &TuiApp) {
     let size = frame.area();
     let color_enabled = supports_color();
-    let header_lines = build_tui_header_lines(size.width, color_enabled);
+    let header_lines = build_tui_header_lines(size.width, size.height, color_enabled);
     let header_height = (header_lines.len() as u16).saturating_add(2).max(6);
     let root = Layout::default()
         .direction(Direction::Vertical)
@@ -503,9 +503,11 @@ fn trigger_key_from_code(code: KeyCode) -> Option<String> {
     }
 }
 
-fn build_tui_header_lines(width: u16, color_enabled: bool) -> Vec<Line<'static>> {
+fn build_tui_header_lines(width: u16, height: u16, color_enabled: bool) -> Vec<Line<'static>> {
     let mut lines = vec![Line::from("")];
-    if width >= 100 {
+    // Keep the dashboard fully visible on default macOS terminal sizes (often 80x24).
+    // Full stacked logo is only used when both width and height have enough headroom.
+    if width >= 110 && height >= 34 {
         let type_rows = [
             "████████╗██╗   ██╗██████╗ ███████╗",
             "╚══██╔══╝╚██╗ ██╔╝██╔══██╗██╔════╝",
@@ -561,7 +563,7 @@ fn build_tui_header_lines(width: u16, color_enabled: bool) -> Vec<Line<'static>>
             ),
         ];
         lines.push(Line::from(tagline).alignment(Alignment::Center));
-    } else if width >= 70 {
+    } else if width >= 78 && height >= 24 {
         let type_rows = [
             "████████╗██╗   ██╗██████╗ ███████╗",
             "╚══██╔══╝╚██╗ ██╔╝██╔══██╗██╔════╝",
