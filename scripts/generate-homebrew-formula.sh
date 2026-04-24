@@ -9,7 +9,8 @@ fi
 
 VERSION="$1"
 CHECKSUMS_FILE="$2"
-REPO="yazanmwk/TypeSymbol"
+# Override for your fork: export TYPESYMBOL_GITHUB_REPO=owner/TypeSymbol
+REPO="${TYPESYMBOL_GITHUB_REPO:-yazanmwk/TypeSymbol}"
 HOMEBREW_TAP_REPO="${HOMEBREW_TAP_REPO:-yazanmwk/homebrew-tap}"
 TEMPLATE="packaging/homebrew/typesymbol.rb.template"
 OUTPUT="packaging/homebrew/typesymbol.rb"

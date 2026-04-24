@@ -22,10 +22,18 @@ jobs:
     runs-on: ubuntu-latest
     env:
       WINGET_PKGS_REPO: microsoft/winget-pkgs
-      WINGET_PKGS_FORK: yazanmwk/winget-pkgs
-      PACKAGE_IDENTIFIER: yazanmwk.TypeSymbol
-      WINGET_PATH_PREFIX: manifests/y/yazanmwk/TypeSymbol
     steps:
+      - name: Derive WinGet paths (fork-friendly)
+        run: |
+          O='${{ github.repository_owner }}'
+          LOWER=$(echo "$O" | tr '[:upper:]' '[:lower:]')
+          C=$(echo "$LOWER" | cut -c1)
+          {
+            echo "WINGET_PATH_PREFIX=manifests/${C}/${LOWER}/TypeSymbol"
+            echo "PACKAGE_IDENTIFIER=${LOWER}.TypeSymbol"
+            echo "WINGET_PKGS_FORK=${LOWER}/winget-pkgs"
+            echo "WINGET_PUBLISHER=$LOWER"
+          } >> "$GITHUB_ENV"
       - name: Resolve release tag
         id: meta
         run: |
@@ -75,6 +83,8 @@ jobs:
 
       - name: Generate WinGet manifests
         shell: pwsh
+        env:
+          TYPESYMBOL_GITHUB_REPO: ${{ github.repository }}
         run: |
           ./scripts/generate-winget-manifests.ps1 `
             -Version "${{ steps.version.outputs.version }}" `
@@ -108,4 +118,4 @@ jobs:
           author: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
           committer: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
           add-paths: |
-            manifests/y/yazanmwk/TypeSymbol/${{ steps.version.outputs.version }}/*.yaml
+            ${{ env.WINGET_PATH_PREFIX }}/${{ steps.version.outputs.version }}/*.yaml

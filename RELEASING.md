@@ -60,15 +60,15 @@ Then submit those generated files to:
 - Homebrew tap PR automation is included:
   - `.github/workflows/publish-homebrew-tap.yml`
   - Trigger: release published
-  - Action: opens PR in `yazanmwk/homebrew-tap` updating `Formula/typesymbol.rb`
+  - Action: opens a PR in the `owner/homebrew-tap` repo for the same GitHub user/org as the release (see workflow) updating `Formula/typesymbol.rb`
 
 - WinGet PR automation is included:
   - `.github/workflows/publish-winget.yml`
   - Trigger: release published
-  - Action: opens PR in `microsoft/winget-pkgs` updating `manifests/y/yazanmwk/TypeSymbol/<version>/*.yaml`
+  - Action: opens PR in `microsoft/winget-pkgs` with manifests under the usual `manifests/<first-letter-of-owner>/<owner>/TypeSymbol/<version>/` tree (the workflow lowercases the owner to match the WinGet layout)
 
 One-time required secret in this repo:
-- `HOMEBREW_TAP_TOKEN` (token with write access to `yazanmwk/homebrew-tap`)
+- `HOMEBREW_TAP_TOKEN` (token with write access to your `homebrew-tap` repo)
 - `WINGET_PKGS_TOKEN` (token that can push to your `winget-pkgs` fork and create PRs)
 
 ## WinGet one-time setup
@@ -80,7 +80,7 @@ Before automation can submit PRs to `microsoft/winget-pkgs`:
    - push branches to your fork
    - open pull requests
 3. Save that token in this repo as `WINGET_PKGS_TOKEN`.
-4. If your fork is not `yazanmwk/winget-pkgs`, update `WINGET_PKGS_FORK` in `.github/workflows/publish-winget.yml`.
+4. The workflow pushes to `your-github-username/winget-pkgs` automatically (from `github.repository_owner`). It must match your actual fork of `microsoft/winget-pkgs`.
 
 After this setup, each published release (`vX.Y.Z`) will automatically open a WinGet update PR.
 

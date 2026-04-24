@@ -11,7 +11,8 @@ jobs:
   update-homebrew-tap:
     runs-on: ubuntu-latest
     env:
-      TAP_REPO: yazanmwk/homebrew-tap
+      # Forks: set a repo secret or change this to "yourname/homebrew-tap"
+      TAP_REPO: ${{ github.repository_owner }}/homebrew-tap
     steps:
       - name: Checkout TypeSymbol repo
         uses: actions/checkout@v4

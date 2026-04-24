@@ -7,7 +7,13 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$repo = "yazanmwk/TypeSymbol"
+# Override for your fork, e.g. $env:TYPESYMBOL_GITHUB_REPO = "owner/TypeSymbol"
+$repo = if ($env:TYPESYMBOL_GITHUB_REPO) { $env:TYPESYMBOL_GITHUB_REPO } else { "yazanmwk/TypeSymbol" }
+# WinGet publisher segment (lowercase first letter in path), e.g. $env:WINGET_PUBLISHER = "yazanmwk"
+$wingetPublisher = if ($env:WINGET_PUBLISHER) { $env:WINGET_PUBLISHER } else { "yazanmwk" }
+$firstLetter = $wingetPublisher.Substring(0, 1).ToLower()
+$packageId = "$wingetPublisher.TypeSymbol"
+
 $artifact = "typesymbol-v$Version-x86_64-pc-windows-msvc.zip"
 $checksums = Get-Content $ChecksumsFile
 $sha = $null
@@ -24,7 +30,7 @@ if (-not $sha) {
 $url = "https://github.com/$repo/releases/download/v$Version/$artifact"
 $releaseNotesUrl = "https://github.com/$repo/releases/tag/v$Version"
 
-$outputRoot = Join-Path "packaging/winget/manifests" "y/yazanmwk/TypeSymbol/$Version"
+$outputRoot = Join-Path "packaging/winget/manifests" "$firstLetter/$wingetPublisher/TypeSymbol/$Version"
 New-Item -ItemType Directory -Path $outputRoot -Force | Out-Null
 
 function Render-Template {
@@ -40,9 +46,9 @@ function Render-Template {
     Set-Content -Path $OutputPath -Value $content -NoNewline
 }
 
-Render-Template "packaging/winget/typesymbol.yaml.template" (Join-Path $outputRoot "yazanmwk.TypeSymbol.yaml")
-Render-Template "packaging/winget/typesymbol.installer.yaml.template" (Join-Path $outputRoot "yazanmwk.TypeSymbol.installer.yaml")
-Render-Template "packaging/winget/typesymbol.locale.en-US.yaml.template" (Join-Path $outputRoot "yazanmwk.TypeSymbol.locale.en-US.yaml")
+Render-Template "packaging/winget/typesymbol.yaml.template" (Join-Path $outputRoot "$packageId.yaml")
+Render-Template "packaging/winget/typesymbol.installer.yaml.template" (Join-Path $outputRoot "$packageId.installer.yaml")
+Render-Template "packaging/winget/typesymbol.locale.en-US.yaml.template" (Join-Path $outputRoot "$packageId.locale.en-US.yaml")
 
 Write-Host "Generated Winget manifests in: $outputRoot"
 Write-Host "Next: submit these files to microsoft/winget-pkgs."
