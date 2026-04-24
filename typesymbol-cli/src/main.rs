@@ -1910,32 +1910,46 @@ fn colorize_non_space_runs(text: &str, code: &str) -> String {
 }
 
 fn default_config_path() -> PathBuf {
-    if let Ok(home) = std::env::var("HOME") {
-        PathBuf::from(home)
+    if cfg!(windows) {
+        if let Ok(appdata) = std::env::var("APPDATA") {
+            return PathBuf::from(appdata)
+                .join("TypeSymbol")
+                .join("config.toml");
+        }
+    } else if let Ok(home) = std::env::var("HOME") {
+        return PathBuf::from(home)
             .join(".config")
             .join("typesymbol")
-            .join("config.toml")
-    } else {
-        PathBuf::from(".")
-            .join(".config")
-            .join("typesymbol")
-            .join("config.toml")
+            .join("config.toml");
     }
+    PathBuf::from(".")
+        .join(".config")
+        .join("typesymbol")
+        .join("config.toml")
 }
 
 fn render_default_config() -> String {
     let cfg = TypeSymbolConfig::default();
+    let excluded_apps_block = if cfg!(windows) {
+        r#"excluded_apps = [
+  "WindowsTerminal.exe",
+  "Code.exe",
+  "rustrover64.exe",
+]"#
+    } else {
+        r#"excluded_apps = [
+  "com.apple.Terminal",
+  "com.microsoft.VSCode",
+  "com.jetbrains.rustrover",
+]"#
+    };
     format!(
         r#"mode = "{mode}"
 trigger_mode = "{trigger_mode}"
 trigger_key = "{trigger_key}"
 live_suggestions = {live_suggestions}
 auto_replace_safe_rules = {auto_replace_safe_rules}
-excluded_apps = [
-  "com.apple.Terminal",
-  "com.microsoft.VSCode",
-  "com.jetbrains.rustrover",
-]
+{excluded_apps}
 
 [features]
 greek_letters = {greek_letters}
@@ -1967,6 +1981,7 @@ infinity = "{infinity}"
 "+-" = "{op_pm}"
 "#,
         mode = cfg.mode,
+        excluded_apps = excluded_apps_block,
         trigger_mode = cfg.trigger_mode,
         trigger_key = cfg.trigger_key,
         live_suggestions = cfg.live_suggestions,
@@ -2014,7 +2029,13 @@ fn daemon_log_path() -> PathBuf {
 }
 
 fn state_dir() -> PathBuf {
-    let preferred = if let Ok(home) = std::env::var("HOME") {
+    let preferred = if cfg!(windows) {
+        if let Ok(local_app_data) = std::env::var("LOCALAPPDATA") {
+            PathBuf::from(local_app_data).join("TypeSymbol").join("state")
+        } else {
+            PathBuf::from(".").join(".typesymbol-state")
+        }
+    } else if let Ok(home) = std::env::var("HOME") {
         PathBuf::from(home)
             .join(".local")
             .join("state")
@@ -2025,7 +2046,11 @@ fn state_dir() -> PathBuf {
     if fs::create_dir_all(&preferred).is_ok() {
         preferred
     } else {
-        let fallback = PathBuf::from("/tmp").join("typesymbol-state");
+        let fallback = if cfg!(windows) {
+            PathBuf::from(".").join(".typesymbol-state")
+        } else {
+            PathBuf::from("/tmp").join("typesymbol-state")
+        };
         let _ = fs::create_dir_all(&fallback);
         fallback
     }
@@ -2072,6 +2097,22 @@ fn read_pid_file() -> Option<u32> {
 }
 
 fn is_pid_alive(pid: u32) -> bool {
+    if cfg!(windows) {
+        let filter = format!("PID eq {}", pid);
+        return Command::new("tasklist")
+            .args(["/FI", &filter])
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
+            .output()
+            .map(|o| {
+                o.status.success()
+                    && String::from_utf8_lossy(&o.stdout)
+                        .to_lowercase()
+                        .contains(&pid.to_string())
+            })
+            .unwrap_or(false);
+    }
+
     Command::new("kill")
         .arg("-0")
         .arg(pid.to_string())
@@ -2156,10 +2197,17 @@ fn stop_daemon_silent() -> Result<&'static str, String> {
     let Some(pid) = read_live_pid() else {
         return Ok("TypeSymbol daemon is not running.");
     };
-    let status = Command::new("kill")
-        .arg(pid.to_string())
-        .status()
-        .map_err(|err| format!("Failed to execute kill for pid {}: {}", pid, err))?;
+    let status = if cfg!(windows) {
+        Command::new("taskkill")
+            .args(["/PID", &pid.to_string(), "/T", "/F"])
+            .status()
+            .map_err(|err| format!("Failed to execute taskkill for pid {}: {}", pid, err))?
+    } else {
+        Command::new("kill")
+            .arg(pid.to_string())
+            .status()
+            .map_err(|err| format!("Failed to execute kill for pid {}: {}", pid, err))?
+    };
     if status.success() {
         let _ = fs::remove_file(daemon_pid_path());
         Ok("Background daemon stopped")
@@ -2177,11 +2225,17 @@ fn print_daemon_status() {
 }
 
 fn launch_agent_label() -> &'static str {
-    "com.typesymbol.daemon"
+    if cfg!(windows) {
+        "TypeSymbolDaemon"
+    } else {
+        "com.typesymbol.daemon"
+    }
 }
 
 fn launch_agent_path() -> PathBuf {
-    if let Ok(home) = std::env::var("HOME") {
+    if cfg!(windows) {
+        state_dir().join("autostart.windows")
+    } else if let Ok(home) = std::env::var("HOME") {
         PathBuf::from(home)
             .join("Library")
             .join("LaunchAgents")
@@ -2210,11 +2264,40 @@ fn enable_autostart_silent(config_path: Option<PathBuf>) -> Result<PathBuf, Stri
     let agent_path = launch_agent_path();
     if let Some(parent) = agent_path.parent() {
         if let Err(err) = fs::create_dir_all(parent) {
-            return Err(format!(
-                "Failed to create LaunchAgents directory {}: {}",
-                parent.display(),
-                err
-            ));
+            return Err(format!("Failed to create autostart directory {}: {}", parent.display(), err));
+        }
+    }
+
+    if cfg!(windows) {
+        let mut task_command = format!("\"{}\" ", exe.display());
+        if let Some(cfg) = config_path {
+            task_command.push_str(&format!("--config \"{}\" ", cfg.display()));
+        }
+        task_command.push_str("daemon run-internal");
+
+        let status = Command::new("schtasks")
+            .args([
+                "/Create",
+                "/TN",
+                launch_agent_label(),
+                "/SC",
+                "ONLOGON",
+                "/TR",
+                &task_command,
+                "/F",
+            ])
+            .status();
+        match status {
+            Ok(s) if s.success() => {
+                let _ = fs::write(&agent_path, task_command);
+                return Ok(agent_path);
+            }
+            Ok(_) | Err(_) => {
+                return Err(
+                    "Failed to create Windows autostart task. Try running elevated or create it manually with schtasks."
+                        .to_string(),
+                )
+            }
         }
     }
 
@@ -2303,6 +2386,16 @@ fn disable_autostart() {
 
 fn disable_autostart_silent() -> Result<(), String> {
     let agent_path = launch_agent_path();
+    if cfg!(windows) {
+        let _ = Command::new("schtasks")
+            .args(["/Delete", "/TN", launch_agent_label(), "/F"])
+            .status();
+        if agent_path.exists() {
+            let _ = fs::remove_file(&agent_path);
+        }
+        return Ok(());
+    }
+
     let _ = Command::new("launchctl")
         .arg("bootout")
         .arg(format!("gui/{}/{}", current_uid(), launch_agent_label()))

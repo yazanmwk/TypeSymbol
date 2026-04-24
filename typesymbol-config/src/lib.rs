@@ -49,11 +49,7 @@ impl Default for TypeSymbolConfig {
             },
             aliases: default_aliases(),
             operators: default_operators(),
-            excluded_apps: HashSet::from([
-                "com.apple.Terminal".to_string(),
-                "com.microsoft.VSCode".to_string(),
-                "com.jetbrains.rustrover".to_string(),
-            ]),
+            excluded_apps: default_excluded_apps(),
         }
     }
 }
@@ -87,6 +83,22 @@ fn default_operators() -> HashMap<String, String> {
         (">=".to_string(), "≥".to_string()),
         ("+-".to_string(), "±".to_string()),
     ])
+}
+
+fn default_excluded_apps() -> HashSet<String> {
+    if cfg!(windows) {
+        HashSet::from([
+            "WindowsTerminal.exe".to_string(),
+            "Code.exe".to_string(),
+            "rustrover64.exe".to_string(),
+        ])
+    } else {
+        HashSet::from([
+            "com.apple.Terminal".to_string(),
+            "com.microsoft.VSCode".to_string(),
+            "com.jetbrains.rustrover".to_string(),
+        ])
+    }
 }
 
 #[cfg(test)]

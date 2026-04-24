@@ -10,3 +10,6 @@
 # Logs and temp artifacts
 *.log
 *.tmp
+
+# Local build/cache artifacts used for sandboxed cargo runs
+.cargo-home/

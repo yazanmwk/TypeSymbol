@@ -1,7 +1,15 @@
 use typesymbol_config::TypeSymbolConfig;
 use typesymbol_core::CoreEngine;
-use typesymbol_platform_macos::{inject_replacement, MacOSAdapter, PlatformEvent};
 use std::sync::{Arc, Mutex};
+
+#[cfg(target_os = "macos")]
+use typesymbol_platform_macos::{
+    inject_replacement, MacOSAdapter as PlatformAdapter, PlatformEvent,
+};
+#[cfg(target_os = "windows")]
+use typesymbol_platform_windows::{
+    inject_replacement, PlatformEvent, WindowsAdapter as PlatformAdapter,
+};
 
 pub fn run(config: TypeSymbolConfig) {
     println!("Starting TypeSymbol daemon with config: {:?}", config.mode);
@@ -17,7 +25,7 @@ pub fn run(config: TypeSymbolConfig) {
         last_prompt: None,
         trigger_label,
     }));
-    let mut adapter = MacOSAdapter::new(config);
+    let mut adapter = PlatformAdapter::new(config);
     adapter.start_listening(move |event| {
         let mut state = match state.lock() {
             Ok(guard) => guard,

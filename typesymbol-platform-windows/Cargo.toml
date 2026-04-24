@@ -1,0 +1,15 @@
+[package]
+name = "typesymbol-platform-windows"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+typesymbol-config = { path = "../typesymbol-config" }
+rdev = { version = "0.5", features = ["unstable_grab"] }
+enigo = "0.2"
+arboard = "3.4"
+windows-sys = { version = "0.59", features = [
+  "Win32_Foundation",
+  "Win32_UI_WindowsAndMessaging",
+  "Win32_System_Threading",
+] }
