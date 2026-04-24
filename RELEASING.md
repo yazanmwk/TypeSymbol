@@ -55,14 +55,6 @@ Output:
 Then submit those generated files to:
 - `microsoft/winget-pkgs`
 
-## Next step (optional)
-
-- Add CI job that auto-opens PRs to:
-  - your Homebrew tap repo
-  - `microsoft/winget-pkgs`
-
-This gives users one-command installs with no Rust/Git prerequisites.
-
 ## Implemented automation
 
 - Homebrew tap PR automation is included:
@@ -70,5 +62,24 @@ This gives users one-command installs with no Rust/Git prerequisites.
   - Trigger: release published
   - Action: opens PR in `yazanmwk/homebrew-tap` updating `Formula/typesymbol.rb`
 
+- WinGet PR automation is included:
+  - `.github/workflows/publish-winget.yml`
+  - Trigger: release published
+  - Action: opens PR in `microsoft/winget-pkgs` updating `manifests/y/yazanmwk/TypeSymbol/<version>/*.yaml`
+
 One-time required secret in this repo:
 - `HOMEBREW_TAP_TOKEN` (token with write access to `yazanmwk/homebrew-tap`)
+- `WINGET_PKGS_TOKEN` (token that can push to your `winget-pkgs` fork and create PRs)
+
+## WinGet one-time setup
+
+Before automation can submit PRs to `microsoft/winget-pkgs`:
+
+1. Fork `microsoft/winget-pkgs` to your GitHub account.
+2. Create a Personal Access Token that can:
+   - push branches to your fork
+   - open pull requests
+3. Save that token in this repo as `WINGET_PKGS_TOKEN`.
+4. If your fork is not `yazanmwk/winget-pkgs`, update `WINGET_PKGS_FORK` in `.github/workflows/publish-winget.yml`.
+
+After this setup, each published release (`vX.Y.Z`) will automatically open a WinGet update PR.

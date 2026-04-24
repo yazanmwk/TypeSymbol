@@ -13,6 +13,7 @@
 
 # Local build/cache artifacts used for sandboxed cargo runs
 .cargo-home/
+.worktrees/
 
 # Environment and local secret files
 .env

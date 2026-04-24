@@ -26,7 +26,21 @@ typesymbol
 
 If command is not found, add `~/.local/bin` to your shell PATH.
 
-## Windows (PowerShell)
+## Windows (WinGet - recommended)
+
+If you just want to install TypeSymbol on Windows:
+
+```powershell
+winget install --id yazanmwk.TypeSymbol
+```
+
+Then run:
+
+```powershell
+typesymbol
+```
+
+## Windows (PowerShell from source)
 
 Run PowerShell as Administrator in repository root:
 

@@ -1,0 +1,73 @@
+name: Publish WinGet Manifests
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  update-winget:
+    runs-on: ubuntu-latest
+    env:
+      WINGET_PKGS_REPO: microsoft/winget-pkgs
+      WINGET_PKGS_FORK: yazanmwk/winget-pkgs
+      PACKAGE_IDENTIFIER: yazanmwk.TypeSymbol
+      WINGET_PATH_PREFIX: manifests/y/yazanmwk/TypeSymbol
+    steps:
+      - name: Checkout TypeSymbol repo
+        uses: actions/checkout@v4
+
+      - name: Download checksums from release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "${{ github.event.release.tag_name }}" \
+            --repo "${{ github.repository }}" \
+            --pattern "checksums.txt" \
+            --dir .
+
+      - name: Parse release version
+        id: version
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          VERSION="${TAG#v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Generate WinGet manifests
+        shell: pwsh
+        run: |
+          ./scripts/generate-winget-manifests.ps1 `
+            -Version "${{ steps.version.outputs.version }}" `
+            -ChecksumsFile "./checksums.txt"
+
+      - name: Checkout winget-pkgs repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.WINGET_PKGS_REPO }}
+          token: ${{ secrets.WINGET_PKGS_TOKEN }}
+          path: winget-pkgs
+
+      - name: Copy manifests into winget-pkgs checkout
+        run: |
+          DEST="winget-pkgs/${{ env.WINGET_PATH_PREFIX }}/${{ steps.version.outputs.version }}"
+          mkdir -p "$DEST"
+          cp packaging/winget/${{ env.WINGET_PATH_PREFIX }}/${{ steps.version.outputs.version }}/*.yaml "$DEST/"
+
+      - name: Create PR in winget-pkgs
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.WINGET_PKGS_TOKEN }}
+          path: winget-pkgs
+          push-to-fork: ${{ env.WINGET_PKGS_FORK }}
+          branch: automation/winget-typesymbol-${{ steps.version.outputs.version }}
+          base: master
+          title: "New version: ${{ env.PACKAGE_IDENTIFIER }} ${{ steps.version.outputs.version }}"
+          body: |
+            Automated WinGet manifest update for `${{ env.PACKAGE_IDENTIFIER }}` version `${{ steps.version.outputs.version }}`.
+          commit-message: "chore(winget): update ${{ env.PACKAGE_IDENTIFIER }} to ${{ steps.version.outputs.version }}"
+          author: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
+          committer: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
+          add-paths: |
+            manifests/y/yazanmwk/TypeSymbol/${{ steps.version.outputs.version }}/*.yaml
