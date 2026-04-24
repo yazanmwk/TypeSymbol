@@ -216,7 +216,12 @@ fn main() {
         },
         Some(Commands::App) => run_app_mode(config),
         None => {
-            if io::stdin().is_terminal() && io::stdout().is_terminal() {
+            if cfg!(windows) {
+                if let Err(err) = run_interactive_tui(resolve_config(&cli), cli.config.clone()) {
+                    eprintln!("Interactive shell failed: {}", err);
+                    process::exit(1);
+                }
+            } else if io::stdin().is_terminal() && io::stdout().is_terminal() {
                 if let Err(err) = run_interactive_tui(resolve_config(&cli), cli.config.clone()) {
                     eprintln!("Interactive shell failed: {}", err);
                     process::exit(1);
