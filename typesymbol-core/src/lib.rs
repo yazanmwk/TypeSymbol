@@ -21,6 +21,16 @@ pub struct CoreEngine {
     limit_arrow_regex: Regex,
     limit_arrow_unicode_regex: Regex,
     partial_derivative_regex: Regex,
+    forall_regex: Regex,
+    exists_regex: Regex,
+    in_regex: Regex,
+    not_in_regex: Regex,
+    subseteq_regex: Regex,
+    union_regex: Regex,
+    intersection_regex: Regex,
+    probability_regex: Regex,
+    expectation_regex: Regex,
+    variance_regex: Regex,
     sqrt_group_regex: Regex,
     sqrt_word_regex: Regex,
     superscript_regex: Regex,
@@ -74,6 +84,17 @@ impl CoreEngine {
             .expect("valid regex"),
             partial_derivative_regex: Regex::new(r"(?i)\bpartial\s*/\s*partial\s*([A-Za-z])\s+(.+)$")
                 .expect("valid regex"),
+            forall_regex: Regex::new(r"(?i)\bfor\s+all\b|\bforall\b").expect("valid regex"),
+            exists_regex: Regex::new(r"(?i)\bthere\s+exists\b|\bexists\b").expect("valid regex"),
+            in_regex: Regex::new(r"(?i)\bin\b").expect("valid regex"),
+            not_in_regex: Regex::new(r"(?i)\bnot\s+in\b").expect("valid regex"),
+            subseteq_regex: Regex::new(r"(?i)\bsubset\s*eq\b|\bsubseteq\b").expect("valid regex"),
+            union_regex: Regex::new(r"(?i)\bunion\b").expect("valid regex"),
+            intersection_regex: Regex::new(r"(?i)\bintersection\b").expect("valid regex"),
+            probability_regex: Regex::new(r"(?i)\b(?:probability|prob)\s+of\s+(.+)$").expect("valid regex"),
+            expectation_regex: Regex::new(r"(?i)\b(?:expectation|expected\s+value)\s+of\s+(.+)$")
+                .expect("valid regex"),
+            variance_regex: Regex::new(r"(?i)\b(?:variance|var)\s+of\s+(.+)$").expect("valid regex"),
             sqrt_group_regex: Regex::new(r"\bsqrt\(([^)]+)\)").expect("valid regex"),
             sqrt_word_regex: Regex::new(r"\bsqrt\s+([A-Za-z0-9]+)\b").expect("valid regex"),
             superscript_regex: Regex::new(r"\^([A-Za-z0-9+\-=]+)").expect("valid regex"),
@@ -324,6 +345,48 @@ impl CoreEngine {
                     format!("{} {}", core, normalize_sum_expression(&tail))
                 }
             })
+            .to_string();
+
+        output = self
+            .probability_regex
+            .replace_all(&output, |caps: &regex::Captures| format!("P({})", caps[1].trim()))
+            .to_string();
+        output = self
+            .expectation_regex
+            .replace_all(&output, |caps: &regex::Captures| format!("E[{}]", caps[1].trim()))
+            .to_string();
+        output = self
+            .variance_regex
+            .replace_all(&output, |caps: &regex::Captures| format!("Var({})", caps[1].trim()))
+            .to_string();
+
+        output = self
+            .not_in_regex
+            .replace_all(&output, "∉")
+            .to_string();
+        output = self
+            .subseteq_regex
+            .replace_all(&output, "⊆")
+            .to_string();
+        output = self
+            .union_regex
+            .replace_all(&output, "∪")
+            .to_string();
+        output = self
+            .intersection_regex
+            .replace_all(&output, "∩")
+            .to_string();
+        output = self
+            .forall_regex
+            .replace_all(&output, "∀")
+            .to_string();
+        output = self
+            .exists_regex
+            .replace_all(&output, "∃")
+            .to_string();
+        output = self
+            .in_regex
+            .replace_all(&output, "∈")
             .to_string();
 
         output
@@ -687,6 +750,34 @@ mod tests {
         assert_eq!(
             engine.format("product from i = 1 to n of i"),
             "∏ᵢ₌₁ⁿ i"
+        );
+        assert_eq!(
+            engine.format("for all x in A"),
+            "∀ x ∈ A"
+        );
+        assert_eq!(
+            engine.format("there exists y not in B"),
+            "∃ y ∉ B"
+        );
+        assert_eq!(
+            engine.format("A subseteq B"),
+            "A ⊆ B"
+        );
+        assert_eq!(
+            engine.format("A union B intersection C"),
+            "A ∪ B ∩ C"
+        );
+        assert_eq!(
+            engine.format("probability of A|B"),
+            "P(A|B)"
+        );
+        assert_eq!(
+            engine.format("expected value of X"),
+            "E[X]"
+        );
+        assert_eq!(
+            engine.format("variance of X"),
+            "Var(X)"
         );
     }
 }
