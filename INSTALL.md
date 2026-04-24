@@ -4,6 +4,19 @@ These installers bootstrap both dependencies and the `typesymbol` binary.
 
 ## macOS
 
+### Homebrew (recommended)
+
+If you use [Homebrew](https://brew.sh/):
+
+```bash
+brew tap yazanmwk/tap
+brew install typesymbol
+```
+
+or `brew install yazanmwk/tap/typesymbol`. For tap setup and version bumps, see [HOMEBREW_TAP_SETUP.md](HOMEBREW_TAP_SETUP.md).
+
+### Build from this repository
+
 From repository root:
 
 ```bash

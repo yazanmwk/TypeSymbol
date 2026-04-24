@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="6" viewBox="0 0 720 6" role="presentation" aria-hidden="true">
+  <title>TypeSymbol TUI wordmark palette</title>
+  <defs>
+    <linearGradient id="ts" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ff5ccb"/>
+      <stop offset="25%" stop-color="#eb8fe0"/>
+      <stop offset="50%" stop-color="#beaeeb"/>
+      <stop offset="75%" stop-color="#82cdf0"/>
+      <stop offset="100%" stop-color="#46e6f0"/>
+    </linearGradient>
+  </defs>
+  <rect width="720" height="6" fill="url(#ts)" rx="2"/>
+</svg>

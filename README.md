@@ -1,18 +1,30 @@
 <div align="center">
 
+<a href="https://github.com/yazanmwk/TypeSymbol">
+  <img src="TypeSymbol_logo.png" alt="TypeSymbol" width="112" height="112" />
+</a>
+
+<br/>
+
 # TypeSymbol
 
 **Type mathematical shorthand system-wide—`alpha` becomes `α`, `->` becomes `→`, and your formulas read like real math.**
 
-<br/>
-
-[![Release](https://img.shields.io/github/v/release/yazanmwk/TypeSymbol?style=for-the-badge&logo=github&logoColor=white&label=release)](https://github.com/yazanmwk/TypeSymbol/releases)
-[![Release workflow](https://img.shields.io/github/actions/workflow/status/yazanmwk/TypeSymbol/release.yml?style=for-the-badge&logo=githubactions&label=build)](https://github.com/yazanmwk/TypeSymbol/actions/workflows/release.yml)
-[![WinGet](https://img.shields.io/badge/winget-yazanmwk.TypeSymbol-0078D4?style=for-the-badge&logo=windows)](https://github.com/yazanmwk/TypeSymbol#install)
+**∫** *system-wide math typing helper* — matches the in-app title bar; the bar below is the same pink → lavender → cyan gradient the full-screen TUI uses for the ASCII “TYPE”/“SYMBOL” wordmark.
 
 <br/>
 
-<sub>Rust core · global daemon · macOS & Windows · CLI + terminal UI</sub>
+<img src="docs/readme-gradient.svg" width="480" height="6" alt="Wordmark gradient" />
+
+<br/>
+
+[![Release](https://img.shields.io/github/v/release/yazanmwk/TypeSymbol?style=for-the-badge&logo=github&logoColor=fff&label=release&labelColor=18181b&color=3178C6)](https://github.com/yazanmwk/TypeSymbol/releases)
+[![Release workflow](https://img.shields.io/github/actions/workflow/status/yazanmwk/TypeSymbol/release.yml?style=for-the-badge&logo=githubactions&logoColor=fff&label=build&labelColor=18181b&color=ba53e6)](https://github.com/yazanmwk/TypeSymbol/actions/workflows/release.yml)
+[![WinGet](https://img.shields.io/badge/winget-yazanmwk.TypeSymbol-0078D4?style=for-the-badge&logo=windows&logoColor=fff&labelColor=18181b)](https://github.com/yazanmwk/TypeSymbol#install)
+
+<br/>
+
+<sub>Rust core · global daemon · macOS & Windows · CLI + TUI: ∫ prompt, <code>╭╮╰╯</code> panels, violet borders, gradient header</sub>
 
 </div>
 
@@ -34,6 +46,7 @@
 ## How it works
 
 ```mermaid
+%%{init: { "theme": "base", "themeVariables": { "primaryColor": "#1a1020", "primaryTextColor": "#e8e0f0", "lineColor": "#ba53e6", "tertiaryColor": "#1f1630" } } }%%
 flowchart LR
     subgraph input [You]
         A[Keyboard: shorthand]
@@ -66,7 +79,22 @@ winget install --id yazanmwk.TypeSymbol
 
 Then open a new terminal and run `typesymbol`.
 
-### macOS (from source installer)
+### macOS (Homebrew — recommended)
+
+If you use [Homebrew](https://brew.sh/):
+
+```bash
+brew tap yazanmwk/tap
+brew install typesymbol
+```
+
+(One line: `brew install yazanmwk/tap/typesymbol`.)
+
+Tap and automation: [HOMEBREW_TAP_SETUP.md](HOMEBREW_TAP_SETUP.md).
+
+### macOS (from source)
+
+Build and install with the script (Xcode CLT, Rust, and binary under `~/.local/bin`):
 
 ```bash
 chmod +x scripts/install-macos.sh
