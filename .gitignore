@@ -13,3 +13,28 @@
 
 # Local build/cache artifacts used for sandboxed cargo runs
 .cargo-home/
+
+# Environment and local secret files
+.env
+.env.*
+!.env.example
+*.local
+
+# Credentials and private keys
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+credentials.json
+secrets.yml
+secrets.yaml
+
+# Local release/debug artifacts
+dist/
+checksums.txt
+typesymbol-v*.tar.gz
+typesymbol-v*.zip
