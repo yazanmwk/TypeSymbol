@@ -1,6 +1,7 @@
 use typesymbol_config::TypeSymbolConfig;
 use typesymbol_core::CoreEngine;
 use std::sync::{Arc, Mutex};
+use std::process::Command;
 
 #[cfg(target_os = "macos")]
 use typesymbol_platform_macos::{
@@ -12,6 +13,11 @@ use typesymbol_platform_windows::{
 };
 
 pub fn run(config: TypeSymbolConfig) {
+    if is_virtual_machine() {
+        eprintln!("TypeSymbol daemon disabled: virtual machine environment detected.");
+        return;
+    }
+
     println!("Starting TypeSymbol daemon with config: {:?}", config.mode);
     println!("App Exclusions loaded: {:?}", config.excluded_apps);
 
@@ -33,6 +39,71 @@ pub fn run(config: TypeSymbolConfig) {
         };
         state.handle_event(event)
     });
+}
+
+fn is_virtual_machine() -> bool {
+    #[cfg(target_os = "windows")]
+    {
+        return command_output_contains_any(
+            "cmd",
+            &["/C", "wmic computersystem get model,manufacturer"],
+            &[
+                "virtualbox",
+                "vmware",
+                "kvm",
+                "qemu",
+                "xen",
+                "hyper-v",
+                "virtual machine",
+                "bochs",
+                "parallels",
+            ],
+        );
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        return command_output_contains_any(
+            "sysctl",
+            &["-n", "machdep.cpu.features"],
+            &["vmm", "hypervisor"],
+        );
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        if command_output_contains_any(
+            "systemd-detect-virt",
+            &[],
+            &["kvm", "qemu", "vmware", "oracle", "microsoft", "xen", "bochs", "parallels"],
+        ) {
+            return true;
+        }
+
+        return command_output_contains_any(
+            "sh",
+            &["-c", "cat /proc/cpuinfo"],
+            &["hypervisor", "kvm", "vmware", "qemu", "xen", "virtualbox"],
+        );
+    }
+
+    #[allow(unreachable_code)]
+    false
+}
+
+fn command_output_contains_any(cmd: &str, args: &[&str], needles: &[&str]) -> bool {
+    let output = match Command::new(cmd).args(args).output() {
+        Ok(out) => out,
+        Err(_) => return false,
+    };
+
+    let mut combined = String::new();
+    combined.push_str(&String::from_utf8_lossy(&output.stdout));
+    combined.push('\n');
+    combined.push_str(&String::from_utf8_lossy(&output.stderr));
+    let lower = combined.to_lowercase();
+
+    needles.iter().any(|needle| lower.contains(needle))
 }
 
 struct DaemonState {
@@ -228,10 +299,35 @@ fn is_high_confidence_math_replacement(original: &str, replacement: &str) -> boo
         )
     });
 
-    let words: Vec<&str> = lower.split_whitespace().collect();
-    let has_membership_phrase = words.len() >= 3 && words.contains(&"in");
+    let has_membership_phrase = is_membership_expression(original_trimmed);
 
     has_keyword || has_operator_syntax || has_math_output_symbol || has_membership_phrase
+}
+
+fn is_membership_expression(input: &str) -> bool {
+    let parts: Vec<&str> = input.split_whitespace().collect();
+    if parts.len() != 3 || !parts[1].eq_ignore_ascii_case("in") {
+        return false;
+    }
+
+    let left = parts[0];
+    let right = parts[2];
+    if left.is_empty() || right.is_empty() {
+        return false;
+    }
+
+    // Keep this strict to avoid false positives in plain English:
+    // `x in A`, `n in N`, `t in R`, etc.
+    let left_ok = left.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+        && left.chars().count() <= 3;
+    let right_ok = right.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+        && right
+            .chars()
+            .next()
+            .map(|c| c.is_ascii_uppercase())
+            .unwrap_or(false);
+
+    left_ok && right_ok
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -282,5 +378,14 @@ mod tests {
         }
         let candidate = daemon.preview_replacement().expect("candidate exists");
         assert_eq!(candidate.replacement, "x ∈ A");
+    }
+
+    #[test]
+    fn does_not_replace_in_inside_normal_sentence() {
+        let mut daemon = TypeSymbolDaemon::new(TypeSymbolConfig::default());
+        for ch in "when i type in it".chars() {
+            daemon.on_char_typed(ch);
+        }
+        assert!(daemon.preview_replacement().is_none());
     }
 }
