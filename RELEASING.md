@@ -83,3 +83,6 @@ Before automation can submit PRs to `microsoft/winget-pkgs`:
 4. If your fork is not `yazanmwk/winget-pkgs`, update `WINGET_PKGS_FORK` in `.github/workflows/publish-winget.yml`.
 
 After this setup, each published release (`vX.Y.Z`) will automatically open a WinGet update PR.
+
+Detailed guide:
+- `WINGET_SETUP.md`
