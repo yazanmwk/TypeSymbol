@@ -28,10 +28,23 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="${{ github.event.release.tag_name || github.event.workflow_run.head_branch }}"
-          gh release download "$TAG" \
-            --repo "${{ github.repository }}" \
-            --pattern "checksums.txt" \
-            --dir .
+          echo "Waiting for checksums.txt on release $TAG..."
+          for i in {1..30}; do
+            if gh release view "$TAG" --repo "${{ github.repository }}" --json assets --jq '.assets[].name' | rg "^checksums\.txt$" > /dev/null; then
+              gh release download "$TAG" \
+                --repo "${{ github.repository }}" \
+                --pattern "checksums.txt" \
+                --dir .
+              echo "Downloaded checksums.txt"
+              exit 0
+            fi
+
+            echo "checksums.txt not available yet (attempt $i/30), retrying in 10s..."
+            sleep 10
+          done
+
+          echo "checksums.txt was not found on release $TAG after waiting."
+          exit 1
 
       - name: Parse release version
         id: version
