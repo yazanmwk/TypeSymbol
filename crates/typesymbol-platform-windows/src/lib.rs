@@ -16,6 +16,21 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindow
 
 static SUPPRESS_EVENTS: AtomicBool = AtomicBool::new(false);
 
+struct SuppressionGuard;
+
+impl SuppressionGuard {
+    fn enable() -> Self {
+        SUPPRESS_EVENTS.store(true, Ordering::Relaxed);
+        Self
+    }
+}
+
+impl Drop for SuppressionGuard {
+    fn drop(&mut self) {
+        SUPPRESS_EVENTS.store(false, Ordering::Relaxed);
+    }
+}
+
 pub struct WindowsAdapter {
     config: TypeSymbolConfig,
     is_dormant: Arc<AtomicBool>,
@@ -139,7 +154,7 @@ pub fn inject_replacement(
     if backspace_count == 0 {
         return Ok(());
     }
-    SUPPRESS_EVENTS.store(true, Ordering::Relaxed);
+    let _suppression_guard = SuppressionGuard::enable();
 
     let mut clipboard = Clipboard::new().map_err(|err| format!("clipboard init failed: {err}"))?;
     let previous = clipboard.get_text().ok();
@@ -152,8 +167,8 @@ pub fn inject_replacement(
         let _ = enigo.key(Key::Backspace, Direction::Click);
     }
     let _ = enigo.key(Key::Control, Direction::Press);
-    // On Windows, enigo expects virtual keys for modified shortcuts (Ctrl+V).
-    let _ = enigo.key(Key::V, Direction::Click);
+    // Use explicit character key for Ctrl+V with enigo 0.2.x.
+    let _ = enigo.key(Key::Unicode('v'), Direction::Click);
     let _ = enigo.key(Key::Control, Direction::Release);
     thread::sleep(Duration::from_millis(50));
 
@@ -162,7 +177,6 @@ pub fn inject_replacement(
     }
 
     thread::sleep(Duration::from_millis(120));
-    SUPPRESS_EVENTS.store(false, Ordering::Relaxed);
     Ok(())
 }
 
