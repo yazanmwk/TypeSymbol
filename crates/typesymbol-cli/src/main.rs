@@ -15,6 +15,7 @@ use std::fs;
 use std::io::{self, BufRead, IsTerminal, Write};
 use std::path::PathBuf;
 use std::process::{self, Command, Stdio};
+use std::thread;
 use std::time::Duration;
 use typesymbol_config::{load_config, TypeSymbolConfig};
 use typesymbol_core::CoreEngine;
@@ -217,10 +218,7 @@ fn main() {
         Some(Commands::App) => run_app_mode(config),
         None => {
             if cfg!(windows) {
-                if let Err(err) = run_interactive_tui(resolve_config(&cli), cli.config.clone()) {
-                    eprintln!("Interactive shell failed: {}", err);
-                    process::exit(1);
-                }
+                run_settings_shell(resolve_config(&cli), cli.config.clone());
             } else if io::stdin().is_terminal() && io::stdout().is_terminal() {
                 if let Err(err) = run_interactive_tui(resolve_config(&cli), cli.config.clone()) {
                     eprintln!("Interactive shell failed: {}", err);
@@ -2153,6 +2151,27 @@ fn start_daemon_background(config_path: Option<PathBuf>) -> bool {
 }
 
 fn start_daemon_background_silent(config_path: Option<PathBuf>) -> Result<(u32, PathBuf), String> {
+    if cfg!(windows) {
+        enable_autostart_silent(config_path)?;
+        let status = Command::new("schtasks")
+            .args(["/Run", "/TN", launch_agent_label()])
+            .status()
+            .map_err(|err| format!("Failed to run Windows autostart task: {}", err))?;
+        if !status.success() {
+            return Err("Failed to start daemon via Scheduled Task.".to_string());
+        }
+
+        // Give the task a moment to spawn and write pid file.
+        thread::sleep(Duration::from_millis(800));
+        if let Some(pid) = read_live_pid() {
+            return Ok((pid, daemon_log_path()));
+        }
+        return Err(
+            "Scheduled Task started, but daemon did not report a live pid. Check daemon logs."
+                .to_string(),
+        );
+    }
+
     let exe = match std::env::current_exe() {
         Ok(p) => p,
         Err(err) => return Err(format!("Failed to resolve executable path: {}", err)),

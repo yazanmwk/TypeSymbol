@@ -84,6 +84,9 @@ typesymbol test "alpha -> beta"
 typesymbol daemon status
 ```
 
+Default CLI interface (Windows): run `typesymbol` with no arguments to open the interactive command shell.
+Common commands in that shell: `on`, `off`, `daemon status`, `config show`, `help`, `exit`.
+
 If Windows reports `VCRUNTIME140.dll` missing, install the VC++ Redistributable (x64) from [Microsoft](https://aka.ms/vs/17/release/vc_redist.x64.exe), then run `typesymbol` again.
 
 Security-first option (review before running):
@@ -111,11 +114,11 @@ Manual install from release assets is also supported:
 If you use [Homebrew](https://brew.sh/):
 
 ```bash
-brew tap yazanmwk/tap
+brew tap yazanmwk/homebrew-tap
 brew install typesymbol
 ```
 
-(One line: `brew install yazanmwk/tap/typesymbol`.)
+(One line: `brew install yazanmwk/homebrew-tap/typesymbol`.)
 
 Tap and automation: [docs/homebrew-tap.md](docs/homebrew-tap.md).
 

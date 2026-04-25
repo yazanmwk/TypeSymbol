@@ -32,6 +32,12 @@ template: |
   irm https://raw.githubusercontent.com/yazanmwk/TypeSymbol/main/scripts/install-windows-release.ps1 | iex
   ```
 
+  After install, TypeSymbol CLI opens with:
+  ```powershell
+  typesymbol
+  ```
+  Common in-shell commands: `on`, `off`, `daemon status`, `config show`, `help`, `exit`.
+
   Version-pinned install:
   ```powershell
   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/yazanmwk/TypeSymbol/main/scripts/install-windows-release.ps1))) -Version X.Y.Z
@@ -47,7 +53,7 @@ template: |
   ### macOS
 
   ```bash
-  brew tap yazanmwk/tap
+  brew tap yazanmwk/homebrew-tap
   brew install typesymbol
   ```
 

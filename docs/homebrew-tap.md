@@ -40,14 +40,14 @@ Commit and push in tap repo.
 Users can then install with:
 
 ```bash
-brew tap yazanmwk/tap
+brew tap yazanmwk/homebrew-tap
 brew install typesymbol
 ```
 
 or directly:
 
 ```bash
-brew install yazanmwk/tap/typesymbol
+brew install yazanmwk/homebrew-tap/typesymbol
 ```
 
 ## 4) Enable automatic PRs to tap repo

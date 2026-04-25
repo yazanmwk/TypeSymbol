@@ -9,11 +9,11 @@ These installers bootstrap both dependencies and the `typesymbol` binary.
 If you use [Homebrew](https://brew.sh/):
 
 ```bash
-brew tap yazanmwk/tap
+brew tap yazanmwk/homebrew-tap
 brew install typesymbol
 ```
 
-or `brew install yazanmwk/tap/typesymbol`. For tap setup and version bumps, see [homebrew-tap.md](homebrew-tap.md).
+or `brew install yazanmwk/homebrew-tap/typesymbol`. For tap setup and version bumps, see [homebrew-tap.md](homebrew-tap.md).
 
 ### Build from this repository
 
@@ -52,6 +52,13 @@ Then run:
 ```powershell
 typesymbol test "alpha -> beta"
 typesymbol daemon status
+```
+
+Default CLI interface (Windows): `typesymbol` with no args opens the command shell.
+
+```powershell
+typesymbol
+# in-shell commands: on, off, daemon status, config show, help, exit
 ```
 
 If you see a `VCRUNTIME140.dll` error, install the Microsoft VC++ Redistributable (x64), then rerun:
