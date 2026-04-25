@@ -2287,6 +2287,23 @@ fn launch_agent_path() -> PathBuf {
     }
 }
 
+fn windows_run_registry_path() -> &'static str {
+    r"HKCU\Software\Microsoft\Windows\CurrentVersion\Run"
+}
+
+fn windows_run_registry_value_name() -> &'static str {
+    "TypeSymbolDaemon"
+}
+
+fn windows_daemon_command(exe: &std::path::Path, config_path: Option<&PathBuf>) -> String {
+    let mut command = format!("\"{}\" ", exe.display());
+    if let Some(cfg) = config_path {
+        command.push_str(&format!("--config \"{}\" ", cfg.display()));
+    }
+    command.push_str("daemon run-internal");
+    command
+}
+
 fn enable_autostart(config_path: Option<PathBuf>) {
     match enable_autostart_silent(config_path) {
         Ok(agent_path) => {
@@ -2311,11 +2328,7 @@ fn enable_autostart_silent(config_path: Option<PathBuf>) -> Result<PathBuf, Stri
     }
 
     if cfg!(windows) {
-        let mut task_command = format!("\"{}\" ", exe.display());
-        if let Some(cfg) = config_path {
-            task_command.push_str(&format!("--config \"{}\" ", cfg.display()));
-        }
-        task_command.push_str("daemon run-internal");
+        let task_command = windows_daemon_command(&exe, config_path.as_ref());
 
         let status = Command::new("schtasks")
             .args([
@@ -2335,10 +2348,32 @@ fn enable_autostart_silent(config_path: Option<PathBuf>) -> Result<PathBuf, Stri
                 return Ok(agent_path);
             }
             Ok(_) | Err(_) => {
-                return Err(
-                    "Failed to create Windows autostart task. Try running elevated or create it manually with schtasks."
-                        .to_string(),
-                )
+                let reg_status = Command::new("reg")
+                    .args([
+                        "add",
+                        windows_run_registry_path(),
+                        "/v",
+                        windows_run_registry_value_name(),
+                        "/t",
+                        "REG_SZ",
+                        "/d",
+                        &task_command,
+                        "/f",
+                    ])
+                    .status();
+
+                match reg_status {
+                    Ok(s) if s.success() => {
+                        let _ = fs::write(&agent_path, task_command);
+                        return Ok(agent_path);
+                    }
+                    Ok(_) | Err(_) => {
+                        return Err(
+                            "Failed to configure Windows autostart (both Task Scheduler and HKCU Run key). Try running elevated or create it manually with schtasks."
+                                .to_string(),
+                        )
+                    }
+                }
             }
         }
     }
@@ -2431,6 +2466,15 @@ fn disable_autostart_silent() -> Result<(), String> {
     if cfg!(windows) {
         let _ = Command::new("schtasks")
             .args(["/Delete", "/TN", launch_agent_label(), "/F"])
+            .status();
+        let _ = Command::new("reg")
+            .args([
+                "delete",
+                windows_run_registry_path(),
+                "/v",
+                windows_run_registry_value_name(),
+                "/f",
+            ])
             .status();
         if agent_path.exists() {
             let _ = fs::remove_file(&agent_path);

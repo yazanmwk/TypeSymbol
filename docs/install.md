@@ -78,7 +78,9 @@ Start-Process .\vc_redist.x64.exe -ArgumentList "/install", "/quiet", "/norestar
 Optional version-pinned install:
 
 ```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/yazanmwk/TypeSymbol/main/scripts/install-windows-release.ps1))) -Version 0.1.0
+# Replace x.y.z with a real tag version shown on:
+# https://github.com/yazanmwk/TypeSymbol/releases
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/yazanmwk/TypeSymbol/main/scripts/install-windows-release.ps1))) -Version x.y.z
 ```
 
 ### Verify release checksums (recommended)
@@ -88,22 +90,40 @@ Before manual install from GitHub release assets, verify integrity with `checksu
 Windows PowerShell:
 
 ```powershell
-$version = "0.1.0"
-Invoke-WebRequest "https://github.com/yazanmwk/TypeSymbol/releases/download/v$version/typesymbol-v$version-x86_64-pc-windows-msvc.zip" -OutFile "typesymbol-v$version-x86_64-pc-windows-msvc.zip"
-Invoke-WebRequest "https://github.com/yazanmwk/TypeSymbol/releases/download/v$version/checksums.txt" -OutFile "checksums.txt"
-$expected = (Select-String -Path .\checksums.txt -Pattern "typesymbol-v$version-x86_64-pc-windows-msvc.zip").ToString().Split(" ")[0]
-$actual = (Get-FileHash ".\typesymbol-v$version-x86_64-pc-windows-msvc.zip" -Algorithm SHA256).Hash.ToLower()
-if ($expected -eq $actual) { "Checksum OK" } else { throw "Checksum mismatch" }
+$ErrorActionPreference = "Stop"
+
+# Resolve latest release tag automatically.
+$latest = Invoke-RestMethod -Uri "https://api.github.com/repos/yazanmwk/TypeSymbol/releases/latest" -Headers @{ "User-Agent" = "TypeSymbolInstallDocs" }
+$version = $latest.tag_name.TrimStart("v")
+$asset = "typesymbol-v$version-x86_64-pc-windows-msvc.zip"
+$base = "https://github.com/yazanmwk/TypeSymbol/releases/download/v$version"
+
+Invoke-WebRequest "$base/$asset" -OutFile $asset
+Invoke-WebRequest "$base/checksums.txt" -OutFile "checksums.txt"
+
+if (!(Test-Path ".\$asset")) { throw "Missing file: $asset" }
+if (!(Test-Path ".\checksums.txt")) { throw "Missing file: checksums.txt" }
+
+$line = Select-String -Path .\checksums.txt -Pattern ([regex]::Escape($asset)) | Select-Object -First 1
+if (-not $line) { throw "No checksum entry found for $asset" }
+
+$expected = ($line.ToString() -split '\s+')[0].ToLower()
+$actual = (Get-FileHash ".\$asset" -Algorithm SHA256).Hash.ToLower()
+
+if ($expected -ne $actual) { throw "Checksum mismatch. expected=$expected actual=$actual" }
+"Checksum OK"
 ```
 
 macOS:
 
 ```bash
-VERSION="0.1.0"
+VERSION="x.y.z"
 curl -L -o "typesymbol-v${VERSION}-aarch64-apple-darwin.tar.gz" "https://github.com/yazanmwk/TypeSymbol/releases/download/v${VERSION}/typesymbol-v${VERSION}-aarch64-apple-darwin.tar.gz"
 curl -L -o "checksums.txt" "https://github.com/yazanmwk/TypeSymbol/releases/download/v${VERSION}/checksums.txt"
 grep "typesymbol-v${VERSION}-aarch64-apple-darwin.tar.gz" checksums.txt | shasum -a 256 -c -
 ```
+
+If Windows autostart setup logs `Access is denied` during install, TypeSymbol still installs and starts the daemon immediately. Re-run from an elevated PowerShell only if you specifically need Task Scheduler registration.
 
 ## Windows (PowerShell from source)
 
