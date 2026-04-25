@@ -517,7 +517,7 @@ fn build_tui_header_lines(width: u16, height: u16, color_enabled: bool) -> Vec<L
     let mut lines = vec![Line::from("")];
     // Keep the dashboard fully visible on default macOS terminal sizes (often 80x24).
     // Full stacked logo is only used when both width and height have enough headroom.
-    if width >= 110 && height >= 34 {
+    if width >= 110 && height >= 30 {
         let type_rows = [
             "████████╗██╗   ██╗██████╗ ███████╗",
             "╚══██╔══╝╚██╗ ██╔╝██╔══██╗██╔════╝",

@@ -1,11 +1,12 @@
 use typesymbol_config::TypeSymbolConfig;
 use typesymbol_core::CoreEngine;
+use std::panic::{self, AssertUnwindSafe};
 use std::sync::{Arc, Mutex};
 use std::process::Command;
 
 #[cfg(target_os = "macos")]
 use typesymbol_platform_macos::{
-    inject_replacement, MacOSAdapter as PlatformAdapter, PlatformEvent,
+    force_release_input_guard, inject_replacement, MacOSAdapter as PlatformAdapter, PlatformEvent,
 };
 #[cfg(target_os = "windows")]
 use typesymbol_platform_windows::{
@@ -13,6 +14,9 @@ use typesymbol_platform_windows::{
 };
 
 pub fn run(config: TypeSymbolConfig) {
+    #[cfg(target_os = "macos")]
+    install_panic_release_hook();
+
     if is_virtual_machine() {
         eprintln!("TypeSymbol daemon disabled: virtual machine environment detected.");
         return;
@@ -33,12 +37,32 @@ pub fn run(config: TypeSymbolConfig) {
     }));
     let mut adapter = PlatformAdapter::new(config);
     adapter.start_listening(move |event| {
-        let mut state = match state.lock() {
-            Ok(guard) => guard,
-            Err(_) => return false,
-        };
-        state.handle_event(event)
+        let result = panic::catch_unwind(AssertUnwindSafe(|| {
+            let mut state = match state.lock() {
+                Ok(guard) => guard,
+                Err(_) => return false,
+            };
+            state.handle_event(event)
+        }));
+        match result {
+            Ok(v) => v,
+            Err(_) => {
+                #[cfg(target_os = "macos")]
+                force_release_input_guard();
+                eprintln!("TypeSymbol safety: recovered from event handler panic.");
+                false
+            }
+        }
     });
+}
+
+#[cfg(target_os = "macos")]
+fn install_panic_release_hook() {
+    let previous = panic::take_hook();
+    panic::set_hook(Box::new(move |info| {
+        force_release_input_guard();
+        previous(info);
+    }));
 }
 
 fn is_virtual_machine() -> bool {

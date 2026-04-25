@@ -5,10 +5,14 @@ use std::sync::{
     Arc,
 };
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use typesymbol_config::TypeSymbolConfig;
 
 static SUPPRESS_EVENTS: AtomicBool = AtomicBool::new(false);
+
+pub fn force_release_input_guard() {
+    SUPPRESS_EVENTS.store(false, Ordering::Relaxed);
+}
 
 pub struct MacOSAdapter {
     config: TypeSymbolConfig,
@@ -42,6 +46,11 @@ impl MacOSAdapter {
     where
         F: Fn(PlatformEvent) -> bool + Send + Sync + 'static,
     {
+        if !accessibility_enabled() {
+            eprintln!("TypeSymbol requires Accessibility access. Grant access in System Settings -> Privacy & Security -> Accessibility, then restart TypeSymbol.");
+            return;
+        }
+
         println!("MacOSAdapter: Starting event loop listener...");
         println!("MacOSAdapter: trigger key = {}", self.config.trigger_key);
         println!(
@@ -51,6 +60,7 @@ impl MacOSAdapter {
         let trigger = trigger_kind_from_config(&self.config.trigger_key);
 
         self.spawn_active_app_monitor();
+        self.spawn_suppression_watchdog();
 
         let is_dormant = Arc::clone(&self.is_dormant);
         let ctrl_pressed = Arc::clone(&self.ctrl_pressed);
@@ -119,6 +129,32 @@ impl MacOSAdapter {
                 .unwrap_or(false);
             is_dormant.store(dormant, Ordering::Relaxed);
             thread::sleep(Duration::from_millis(500));
+        });
+    }
+
+    fn spawn_suppression_watchdog(&self) {
+        thread::spawn(move || {
+            let mut suppress_since: Option<Instant> = None;
+            loop {
+                if SUPPRESS_EVENTS.load(Ordering::Relaxed) {
+                    if suppress_since.is_none() {
+                        suppress_since = Some(Instant::now());
+                    }
+                    if suppress_since
+                        .map(|t| t.elapsed() > Duration::from_secs(3))
+                        .unwrap_or(false)
+                    {
+                        eprintln!(
+                            "TypeSymbol safety: input suppression exceeded 3s; auto-releasing hook guard."
+                        );
+                        SUPPRESS_EVENTS.store(false, Ordering::Relaxed);
+                        suppress_since = None;
+                    }
+                } else {
+                    suppress_since = None;
+                }
+                thread::sleep(Duration::from_millis(150));
+            }
         });
     }
 }
@@ -200,4 +236,17 @@ fn trigger_kind_from_config(raw: &str) -> TriggerKind {
         "ctrl-space" | "control-space" | "ctrl+space" | "control+space" => TriggerKind::CtrlSpace,
         _ => TriggerKind::Enter,
     }
+}
+
+fn accessibility_enabled() -> bool {
+    let script = r#"tell application "System Events" to get UI elements enabled"#;
+    let output = match Command::new("osascript").arg("-e").arg(script).output() {
+        Ok(out) => out,
+        Err(_) => return false,
+    };
+    if !output.status.success() {
+        return false;
+    }
+    let stdout = String::from_utf8_lossy(&output.stdout).to_lowercase();
+    stdout.contains("true")
 }
