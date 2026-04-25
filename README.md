@@ -1,33 +1,10 @@
 <div align="center">
 
-<a href="https://github.com/yazanmwk/TypeSymbol">
-  <img src="docs/assets/TypeSymbol_logo.png" alt="TypeSymbol" width="112" height="112" />
-</a>
-
-<br/>
-
-# TypeSymbol
-
-**Type mathematical shorthand system-wide—`alpha` becomes `α`, `->` becomes `→`, and your formulas read like real math.**
-
-**∫** *system-wide math typing helper* — matches the in-app title bar; the bar below is the same pink → lavender → cyan gradient the full-screen TUI uses for the ASCII “TYPE”/“SYMBOL” wordmark.
-
-<br/>
-
-<img src="docs/readme-gradient.svg" width="480" height="6" alt="Wordmark gradient" />
+<img src="docs/assets/readme-hero.svg" width="100%" alt="TypeSymbol hero banner" />
 
 <br/>
 
 [![Release](https://img.shields.io/github/v/release/yazanmwk/TypeSymbol?style=for-the-badge&logo=github&logoColor=fff&label=release&labelColor=18181b&color=3178C6)](https://github.com/yazanmwk/TypeSymbol/releases)
-[![Release workflow](https://img.shields.io/github/actions/workflow/status/yazanmwk/TypeSymbol/release.yml?style=for-the-badge&logo=githubactions&logoColor=fff&label=build&labelColor=18181b&color=ba53e6)](https://github.com/yazanmwk/TypeSymbol/actions/workflows/release.yml)
-[![Windows Installer](https://img.shields.io/badge/windows-installer-0078D4?style=for-the-badge&logo=windows&logoColor=fff&labelColor=18181b)](https://github.com/yazanmwk/TypeSymbol/releases/latest)
-
-<br/>
-
-[![Rust](https://img.shields.io/badge/Rust-Core-000000?style=for-the-badge&logo=rust&logoColor=white&labelColor=18181b)](https://www.rust-lang.org/)
-[![macOS](https://img.shields.io/badge/macOS-Supported-111827?style=for-the-badge&logo=apple&logoColor=white&labelColor=18181b)](docs/install.md)
-[![Windows](https://img.shields.io/badge/Windows-Supported-0078D4?style=for-the-badge&logo=windows&logoColor=white&labelColor=18181b)](docs/install.md)
-[![CLI + TUI](https://img.shields.io/badge/CLI%20%2B%20TUI-Interface-6D28D9?style=for-the-badge&logo=gnubash&logoColor=white&labelColor=18181b)](docs/install.md)
 [![License](https://img.shields.io/badge/License-MIT-16a34a?style=for-the-badge&logo=opensourceinitiative&logoColor=white&labelColor=18181b)](LICENSE)
 
 <br/>
@@ -37,6 +14,12 @@
 </div>
 
 <br/>
+
+# TypeSymbol
+
+Type mathematical shorthand system-wide—`alpha` becomes `α`, `->` becomes `→`, and your formulas read like real math.
+
+---
 
 ## See it in one glance
 
@@ -85,87 +68,44 @@ flowchart LR
 2. A **background daemon** watches input so replacement can happen globally (not just inside one app).  
 3. **macOS and Windows** each have a native adapter for capture and injection.
 
+### Control surface (why the controls exist)
+
+| Control | What it does | Why it matters |
+| --- | --- | --- |
+| `typesymbol on` / `typesymbol off` | Enable or pause global replacement instantly | You can safely switch contexts without uninstalling or editing config |
+| `typesymbol daemon status` | Shows whether the background service is running | Quick health check when symbols are not appearing |
+| `typesymbol config init` | Creates a local config with defaults | Gives you an explicit, editable baseline instead of hidden behavior |
+| `typesymbol config show` | Prints the active config | Confirms which symbol families and triggers are currently active |
+| `typesymbol test "..."` | Previews transforms without injecting into apps | Lets you validate rules before using them in live text fields |
+| Trigger setting (`enter` / `ctrl-space`) | Chooses when replacement is applied | Balances speed vs control based on your typing style |
+| Excluded apps list | Prevents replacement in selected apps | Avoids accidental transforms in terminals, editors, or sensitive inputs |
+
 ---
 
 ## Install
 
-### Windows (GitHub installer - recommended)
+### Recommended (single path)
+
+Install the official release build for your platform:
+
+```bash
+# macOS
+brew install yazanmwk/homebrew-tap/typesymbol
+```
 
 ```powershell
+# Windows
 irm https://raw.githubusercontent.com/yazanmwk/TypeSymbol/main/scripts/install-windows-release.ps1 | iex
 ```
 
-Then open a new terminal and verify:
+Verify:
 
-```powershell
+```bash
 typesymbol test "alpha -> beta"
 typesymbol daemon status
 ```
 
-Update later with:
-
-```bash
-typesymbol update check
-typesymbol update
-```
-
-Default CLI interface (Windows): run `typesymbol` with no arguments to open the interactive command shell.
-Common commands in that shell: `on`, `off`, `daemon status`, `config show`, `help`, `exit`.
-
-If Windows reports `VCRUNTIME140.dll` missing, install the VC++ Redistributable (x64) from [Microsoft](https://aka.ms/vs/17/release/vc_redist.x64.exe), then run `typesymbol` again.
-
-Security-first option (review before running):
-
-```powershell
-Invoke-WebRequest https://raw.githubusercontent.com/yazanmwk/TypeSymbol/main/scripts/install-windows-release.ps1 -OutFile install-typesymbol.ps1
-Get-Content .\install-typesymbol.ps1
-.\install-typesymbol.ps1
-```
-
-Version-pinned install:
-
-```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/yazanmwk/TypeSymbol/main/scripts/install-windows-release.ps1))) -Version 0.1.0
-```
-
-Manual install from release assets is also supported:
-
-1. Download `typesymbol-vX.Y.Z-x86_64-pc-windows-msvc.zip` from [Releases](https://github.com/yazanmwk/TypeSymbol/releases).
-2. Verify it with `checksums.txt`.
-3. Extract `typesymbol.exe` into a folder on your `PATH` (for example `%USERPROFILE%\bin`).
-
-### macOS (Homebrew — recommended)
-
-If you use [Homebrew](https://brew.sh/):
-
-```bash
-brew tap yazanmwk/homebrew-tap
-brew install typesymbol
-```
-
-(One line: `brew install yazanmwk/homebrew-tap/typesymbol`.)
-
-Tap and automation: [docs/homebrew-tap.md](docs/homebrew-tap.md).
-
-### macOS (from source)
-
-Build and install with the script (Xcode CLT, Rust, and binary under `~/.local/bin`):
-
-```bash
-chmod +x scripts/install-macos.sh
-./scripts/install-macos.sh
-typesymbol
-```
-
-### Windows (from source)
-
-```powershell
-Set-ExecutionPolicy -Scope Process Bypass
-.\scripts\install-windows.ps1
-typesymbol
-```
-
-*PATH tips and VM notes: [docs/install.md](docs/install.md).*
+All alternative install methods (manual assets, from source, troubleshooting) are in [docs/install.md](docs/install.md).
 
 ---
 
@@ -182,21 +122,6 @@ typesymbol config show
 # Daemon
 typesymbol daemon status
 ```
-
-### Fast path (new users)
-
-```bash
-# 1) Install
-brew install yazanmwk/homebrew-tap/typesymbol
-
-# 2) Initialize config
-typesymbol config init
-
-# 3) Verify behavior
-typesymbol test "for all x in A"
-```
-
----
 
 ## Syntax types supported
 
@@ -221,53 +146,32 @@ Complete syntax examples: [docs/syntax-guide.md](docs/syntax-guide.md)
 
 ---
 
-## Feature snapshot
-
-| Capability | Why it matters |
-| --- | --- |
-| **System-wide daemon** | Works in your focused app, not only one editor plugin |
-| **Rule-driven syntax engine** | Easy to reason about, test, and customize |
-| **Math pack coverage** | Handles calculus, transforms, sets, logic, and stats shorthand |
-| **Config-first behavior** | Toggle symbol families and tune replacements safely |
-| **CLI + TUI controls** | Inspect, test, and manage state quickly from terminal |
-
----
-
-## Safety and control
-
-- TypeSymbol runs locally on your machine.
-- You control when replacement is active (`typesymbol on` / `typesymbol off`).
-- Excluded apps are configurable to avoid accidental transforms in sensitive contexts.
-- Suggestions/replacements are deterministic rule transforms, not opaque generation.
-
----
-
 ## Why TypeSymbol
 
-| | |
-| --- | --- |
-| **System-wide** | Works across apps—not a plugin for a single editor. |
-| **Fast core** | Parser and rules run in Rust. |
-| **Hackable** | Config-driven rules; CLI + TUI for inspection and control. |
-| **Ships cleanly** | Automated [releases](docs/releasing.md): signed source history, reproducible binary assets + checksums, and [Homebrew tap](docs/homebrew-tap.md). |
+- **Keep flow state:** type plain shorthand and get math symbols without leaving your current app.
+- **Work everywhere:** applies system-wide on macOS and Windows, not only inside one editor.
+- **Stay in control:** explicit triggers, quick on/off, test mode, and per-app exclusions.
+- **Trust the output:** deterministic rule-based transforms with config you can inspect and edit.
 
 ---
 
 ## Repository map
 
-Rust crates live under `crates/`. Top level keeps docs, packaging, scripts, and CI.
+Only the main areas most contributors need:
 
-| Crate / area | Role |
-| --- | --- |
-| `crates/typesymbol-core` | Parser, formatter, rule engine |
-| `crates/typesymbol-config` | Config model, load/save, defaults |
-| `crates/typesymbol-daemon` | Runtime and event pipeline |
-| `crates/typesymbol-platform-macos` | macOS input & replacement |
-| `crates/typesymbol-platform-windows` | Windows input & replacement |
-| `crates/typesymbol-cli` | CLI and TUI entrypoint |
-| `docs/` | Install guides, releasing, security, PRD |
-| `scripts/` | Installers and packaging helpers |
-| `.github/workflows/` | Release and Homebrew automation |
+```text
+TypeSymbol/
+├── crates/
+│   ├── typesymbol-core/              # Parsing + transform engine
+│   ├── typesymbol-config/            # Config model + defaults
+│   ├── typesymbol-daemon/            # Runtime + input event pipeline
+│   ├── typesymbol-platform-macos/    # Native macOS adapter
+│   ├── typesymbol-platform-windows/  # Native Windows adapter
+│   └── typesymbol-cli/               # CLI + TUI entrypoint
+├── docs/                             # Install, syntax, release, security
+├── scripts/                          # Install and packaging scripts
+└── .github/workflows/                # CI and release automation
+```
 
 ---
 
@@ -291,21 +195,8 @@ Index of all guides: **[docs/README.md](docs/README.md)**.
 
 Do not post suspected vulnerabilities in public issues first. See **[docs/SECURITY.md](docs/SECURITY.md)** for how to report them responsibly.
 
----
-
-## Let's Connect
-
-[![GitHub](https://img.shields.io/badge/GitHub-TypeSymbol-18181b?style=for-the-badge&logo=github&logoColor=white)](https://github.com/yazanmwk/TypeSymbol)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-Yazan%20K-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/yazanmwk/)
-[![Email](https://img.shields.io/badge/Email-Contact-ea4335?style=for-the-badge&logo=gmail&logoColor=white)](mailto:yazan.mw.k@gmail.com)
-[![Releases](https://img.shields.io/badge/Releases-Latest-2563eb?style=for-the-badge&logo=github&logoColor=white)](https://github.com/yazanmwk/TypeSymbol/releases)
-[![Issues](https://img.shields.io/badge/Issues-Track%20Bugs-ef4444?style=for-the-badge&logo=githubissues&logoColor=white)](https://github.com/yazanmwk/TypeSymbol/issues)
-[![Security](https://img.shields.io/badge/Security-Report-a855f7?style=for-the-badge&logo=shield&logoColor=white)](docs/SECURITY.md)
-
----
-
 <div align="center">
 
-**[Releases](https://github.com/yazanmwk/TypeSymbol/releases)** · **[Issues](https://github.com/yazanmwk/TypeSymbol/issues)**
+**[Releases](https://github.com/yazanmwk/TypeSymbol/releases)** · **[Issues](https://github.com/yazanmwk/TypeSymbol/issues)** · **[LinkedIn](https://www.linkedin.com/in/yazanmwk/)** · **[Email](mailto:yazan.mw.k@gmail.com)**
 
 </div>
