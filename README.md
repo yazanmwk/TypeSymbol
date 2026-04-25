@@ -79,6 +79,8 @@ irm https://raw.githubusercontent.com/yazanmwk/TypeSymbol/main/scripts/install-w
 
 Then open a new terminal and run `typesymbol`.
 
+If Windows reports `VCRUNTIME140.dll` missing, install the VC++ Redistributable (x64) from [Microsoft](https://aka.ms/vs/17/release/vc_redist.x64.exe), then run `typesymbol` again.
+
 Security-first option (review before running):
 
 ```powershell

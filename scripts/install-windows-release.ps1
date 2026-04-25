@@ -43,6 +43,51 @@ function Add-ToUserPath {
     [System.Environment]::SetEnvironmentVariable("Path", "$current;$PathToAdd", "User")
 }
 
+function Test-VcRuntimePresent {
+    $system32 = Join-Path $env:WINDIR "System32"
+    $required = @(
+        "vcruntime140.dll",
+        "vcruntime140_1.dll",
+        "msvcp140.dll"
+    )
+
+    foreach ($dll in $required) {
+        if (-not (Test-Path (Join-Path $system32 $dll))) {
+            return $false
+        }
+    }
+
+    return $true
+}
+
+function Ensure-VcRuntime {
+    if (Test-VcRuntimePresent) {
+        return
+    }
+
+    Write-Log "Microsoft VC++ runtime not found. Installing VC++ Redistributable (x64)..."
+
+    $vcRedistUrl = "https://aka.ms/vs/17/release/vc_redist.x64.exe"
+    $vcRedistPath = Join-Path $env:TEMP "vc_redist.x64.exe"
+    Invoke-WebRequest -Uri $vcRedistUrl -OutFile $vcRedistPath
+
+    try {
+        $proc = Start-Process -FilePath $vcRedistPath -ArgumentList "/install", "/quiet", "/norestart" -PassThru -Wait
+        if ($proc.ExitCode -ne 0 -and $proc.ExitCode -ne 3010) {
+            throw "VC++ Redistributable installer failed with exit code $($proc.ExitCode)."
+        }
+    }
+    finally {
+        if (Test-Path $vcRedistPath) {
+            Remove-Item -Force $vcRedistPath
+        }
+    }
+
+    if (-not (Test-VcRuntimePresent)) {
+        throw "VC++ runtime is still missing after install. Install manually from https://aka.ms/vs/17/release/vc_redist.x64.exe and rerun."
+    }
+}
+
 $tag = Resolve-Tag -RequestedVersion $Version
 $assetTag = $tag
 
@@ -61,6 +106,8 @@ New-Item -ItemType Directory -Force -Path $tempDir | Out-Null
 $zipPath = Join-Path $tempDir $asset
 
 try {
+    Ensure-VcRuntime
+
     Write-Log "Downloading $asset..."
     Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath
 

@@ -53,6 +53,13 @@ Then run:
 typesymbol
 ```
 
+If you see a `VCRUNTIME140.dll` error, install the Microsoft VC++ Redistributable (x64), then rerun:
+
+```powershell
+Invoke-WebRequest https://aka.ms/vs/17/release/vc_redist.x64.exe -OutFile vc_redist.x64.exe
+Start-Process .\vc_redist.x64.exe -ArgumentList "/install", "/quiet", "/norestart" -Wait
+```
+
 Optional version-pinned install:
 
 ```powershell
