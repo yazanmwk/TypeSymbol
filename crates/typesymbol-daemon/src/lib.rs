@@ -214,7 +214,9 @@ impl TypeSymbolDaemon {
 
     pub fn preview_replacement(&self) -> Option<ReplacementCandidate> {
         let chars: Vec<char> = self.text_buffer.chars().collect();
-        let max_suffix = chars.len().min(64);
+        // Evaluate across the full rolling buffer window so long math phrases
+        // (integrals/summations/transforms) are not truncated mid-expression.
+        let max_suffix = chars.len().min(self.max_buffer_chars);
 
         for len in (1..=max_suffix).rev() {
             let start = chars.len() - len;
@@ -443,5 +445,20 @@ mod tests {
             daemon.on_char_typed(ch);
         }
         assert!(daemon.preview_replacement().is_none());
+    }
+
+    #[test]
+    fn handles_long_prefix_before_integral_phrase() {
+        let mut daemon = TypeSymbolDaemon::new(TypeSymbolConfig::default());
+        let input = "this is a long prefix that should not break integral parsing integral from 0 to infinity of cos x";
+        for ch in input.chars() {
+            daemon.on_char_typed(ch);
+        }
+        let candidate = daemon.preview_replacement().expect("candidate exists");
+        assert_eq!(candidate.original, input);
+        assert_eq!(
+            candidate.replacement,
+            "this is a long prefix that should not break integral parsing ∫₀^∞ cos x dx"
+        );
     }
 }
