@@ -219,6 +219,9 @@ impl TypeSymbolDaemon {
         for len in (1..=max_suffix).rev() {
             let start = chars.len() - len;
             let suffix: String = chars[start..].iter().collect();
+            if starts_inside_word_boundary(&chars, start, &suffix) {
+                continue;
+            }
             let formatted = self.engine.format(&suffix);
             if formatted != suffix && is_high_confidence_math_replacement(&suffix, &formatted) {
                 return Some(ReplacementCandidate {
@@ -242,6 +245,26 @@ impl TypeSymbolDaemon {
         let drop_count = count - self.max_buffer_chars;
         self.text_buffer = self.text_buffer.chars().skip(drop_count).collect();
     }
+}
+
+fn starts_inside_word_boundary(buffer_chars: &[char], start: usize, suffix: &str) -> bool {
+    if start == 0 {
+        return false;
+    }
+
+    let first = match suffix.chars().next() {
+        Some(ch) => ch,
+        None => return false,
+    };
+
+    // Only block letter-driven rules (e.g., "int", "sum", "alpha") when they
+    // begin in the middle of another identifier/word.
+    if !first.is_ascii_alphabetic() {
+        return false;
+    }
+
+    let prev = buffer_chars[start - 1];
+    prev.is_ascii_alphanumeric() || prev == '_'
 }
 
 fn is_high_confidence_math_replacement(original: &str, replacement: &str) -> bool {
@@ -408,6 +431,15 @@ mod tests {
     fn does_not_replace_in_inside_normal_sentence() {
         let mut daemon = TypeSymbolDaemon::new(TypeSymbolConfig::default());
         for ch in "when i type in it".chars() {
+            daemon.on_char_typed(ch);
+        }
+        assert!(daemon.preview_replacement().is_none());
+    }
+
+    #[test]
+    fn does_not_replace_int_inside_normal_word() {
+        let mut daemon = TypeSymbolDaemon::new(TypeSymbolConfig::default());
+        for ch in "point".chars() {
             daemon.on_char_typed(ch);
         }
         assert!(daemon.preview_replacement().is_none());
