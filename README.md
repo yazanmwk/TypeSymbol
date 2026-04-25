@@ -86,7 +86,7 @@ flowchart LR
 
 ### Recommended (single path)
 
-Install the official release build for your platform:
+Install from the official TypeSymbol release channel:
 
 ```bash
 # macOS
@@ -106,6 +106,14 @@ typesymbol daemon status
 ```
 
 All alternative install methods (manual assets, from source, troubleshooting) are in [docs/install.md](docs/install.md).
+
+---
+
+## Contribution policy
+
+- Open source contributions are welcome (features, fixes, docs, tests).
+- Maintainers handle all version tags and official releases.
+- Pull requests do not publish release artifacts.
 
 ---
 
@@ -182,10 +190,7 @@ Index of all guides: **[docs/README.md](docs/README.md)**.
 | Doc | What it’s for |
 | --- | --- |
 | [docs/install.md](docs/install.md) | Detailed install, PATH, and platform notes |
-| [docs/releasing.md](docs/releasing.md) | Cutting a version and release artifacts |
-| [docs/homebrew-tap.md](docs/homebrew-tap.md) | Homebrew tap |
-| [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | Build from source, tests, packaging overrides for forks |
-| [docs/PRD.md](docs/PRD.md) | Product requirements (vision and goals) |
+| [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | Build from source, tests, and PR workflow |
 | [docs/SECURITY.md](docs/SECURITY.md) | Responsible disclosure |
 | [LICENSE](LICENSE) | MIT License |
 
