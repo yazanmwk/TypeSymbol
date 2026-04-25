@@ -2583,6 +2583,43 @@ fn run_app_mode(config: TypeSymbolConfig) {
 }
 
 fn run_self_update(check_only: bool) {
+    if cfg!(target_os = "windows") {
+        if check_only {
+            println!("Windows update check is manual right now.");
+            println!("To update, run:");
+            println!("powershell -NoProfile -ExecutionPolicy Bypass -Command \"& ([scriptblock]::Create((irm https://raw.githubusercontent.com/yazanmwk/TypeSymbol/main/scripts/install-windows-release.ps1))) -Version latest\"");
+            return;
+        }
+
+        println!("Running Windows release installer...");
+        let script = "& ([scriptblock]::Create((irm https://raw.githubusercontent.com/yazanmwk/TypeSymbol/main/scripts/install-windows-release.ps1))) -Version latest";
+        let status = Command::new("powershell")
+            .args([
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-Command",
+                script,
+            ])
+            .status();
+
+        match status {
+            Ok(s) if s.success() => {
+                println!("TypeSymbol update complete.");
+                println!("Tip: run `typesymbol --version` to verify.");
+            }
+            Ok(_) => {
+                eprintln!("Windows installer exited with an error.");
+                process::exit(1);
+            }
+            Err(err) => {
+                eprintln!("Failed to launch PowerShell installer: {}", err);
+                process::exit(1);
+            }
+        }
+        return;
+    }
+
     if !cfg!(target_os = "macos") {
         println!("Automatic update is currently supported on macOS Homebrew installs.");
         println!("Download the latest release from:");

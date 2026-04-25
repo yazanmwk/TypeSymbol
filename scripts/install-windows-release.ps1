@@ -114,7 +114,7 @@ function Stop-RunningTypeSymbol {
     # Best-effort graceful shutdown through CLI first.
     if (Test-Path $InstalledExePath) {
         try {
-            & $InstalledExePath off | Out-Null
+            & $InstalledExePath off *> $null
         }
         catch {
             # Ignore and continue to process-level stop below.
@@ -141,10 +141,22 @@ function Configure-WindowsAutostart {
     $taskName = "TypeSymbolDaemon"
     $runCommand = "`"$InstalledExePath`" daemon run-internal"
 
-    & schtasks /Create /TN $taskName /SC ONLOGON /TR $runCommand /F 2>$null | Out-Null
-    if ($LASTEXITCODE -eq 0) {
-        Write-Log "Autostart configured via Task Scheduler."
-        return
+    $schtasksStderr = Join-Path $env:TEMP ("typesymbol-schtasks-" + [Guid]::NewGuid().ToString("N") + ".log")
+    try {
+        $taskProc = Start-Process -FilePath "schtasks.exe" -ArgumentList @("/Create", "/TN", $taskName, "/SC", "ONLOGON", "/TR", $runCommand, "/F") -PassThru -Wait -WindowStyle Hidden -RedirectStandardError $schtasksStderr
+        if ($taskProc.ExitCode -eq 0) {
+            Write-Log "Autostart configured via Task Scheduler."
+            return
+        }
+        Write-Warning "Task Scheduler setup failed (exit $($taskProc.ExitCode)). Falling back to HKCU Run key."
+    }
+    catch {
+        Write-Warning "Task Scheduler setup failed ($($_.Exception.Message)). Falling back to HKCU Run key."
+    }
+    finally {
+        if (Test-Path $schtasksStderr) {
+            Remove-Item -Force $schtasksStderr -ErrorAction SilentlyContinue
+        }
     }
 
     $regPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
@@ -168,6 +180,22 @@ function Start-TypeSymbolDaemon {
     $proc = Start-Process -FilePath $InstalledExePath -ArgumentList @("daemon", "run-internal") -WindowStyle Hidden -PassThru
     Write-Host "Started TypeSymbol daemon in background (pid $($proc.Id))."
     Write-Host "Logs: $logPath"
+}
+
+function Resolve-ExtractedExePath {
+    param([string]$ExtractionRoot)
+
+    $direct = Join-Path $ExtractionRoot "typesymbol.exe"
+    if (Test-Path $direct) {
+        return $direct
+    }
+
+    $candidate = Get-ChildItem -Path $ExtractionRoot -Filter "typesymbol.exe" -File -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($candidate) {
+        return $candidate.FullName
+    }
+
+    throw "typesymbol.exe was not found in extracted archive at $ExtractionRoot"
 }
 
 $tag = Resolve-Tag -RequestedVersion $Version
@@ -202,9 +230,10 @@ try {
     Write-Log "Installing typesymbol.exe to $InstallDir..."
     New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
     Expand-Archive -Path $zipPath -DestinationPath $tempDir -Force
+    $extractedExe = Resolve-ExtractedExePath -ExtractionRoot $tempDir
     $installedExe = Join-Path $InstallDir "typesymbol.exe"
     Stop-RunningTypeSymbol -InstalledExePath $installedExe
-    Copy-Item (Join-Path $tempDir "typesymbol.exe") $installedExe -Force
+    Copy-Item $extractedExe $installedExe -Force
 
     Add-ToUserPath -PathToAdd $InstallDir
     Add-ToCurrentSessionPath -PathToAdd $InstallDir
