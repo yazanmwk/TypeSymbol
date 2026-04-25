@@ -9,7 +9,15 @@
 
 <br/>
 
-<sub>Rust core · global daemon · macOS & Windows · CLI + TUI: ∫ prompt, <code>╭╮╰╯</code> panels, violet borders, gradient header</sub>
+[![macOS](https://img.shields.io/badge/macOS-Supported-111827?style=for-the-badge&logo=apple&logoColor=white)](docs/install.md)
+[![Windows](https://img.shields.io/badge/Windows-Supported-0078D4?style=for-the-badge&logo=windows&logoColor=white)](docs/install.md)
+[![Syntax Guide](https://img.shields.io/badge/Syntax-Guide-7C3AED?style=for-the-badge&logo=bookstack&logoColor=white)](docs/syntax-guide.md)
+[![Contributing](https://img.shields.io/badge/Contributing-PRs%20Welcome-2563EB?style=for-the-badge&logo=github&logoColor=white)](docs/CONTRIBUTING.md)
+[![Security](https://img.shields.io/badge/Security-Policy-A855F7?style=for-the-badge&logo=shield&logoColor=white)](docs/SECURITY.md)
+
+<br/>
+
+<sub>System-wide math shorthand for macOS and Windows, with explicit controls for testing, toggling, and safe app-by-app behavior.</sub>
 
 </div>
 
