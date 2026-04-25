@@ -39,18 +39,48 @@ typesymbol
 
 If command is not found, add `~/.local/bin` to your shell PATH.
 
-## Windows (WinGet - recommended)
+## Windows (GitHub installer - recommended)
 
 If you just want to install TypeSymbol on Windows:
 
 ```powershell
-winget install --id yazanmwk.TypeSymbol
+irm https://raw.githubusercontent.com/yazanmwk/TypeSymbol/main/scripts/install-windows-release.ps1 | iex
 ```
 
 Then run:
 
 ```powershell
 typesymbol
+```
+
+Optional version-pinned install:
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/yazanmwk/TypeSymbol/main/scripts/install-windows-release.ps1))) -Version 0.1.0
+```
+
+### Verify release checksums (recommended)
+
+Before manual install from GitHub release assets, verify integrity with `checksums.txt`.
+
+Windows PowerShell:
+
+```powershell
+$version = "0.1.0"
+Invoke-WebRequest "https://github.com/yazanmwk/TypeSymbol/releases/download/v$version/typesymbol-v$version-x86_64-pc-windows-msvc.zip" -OutFile "typesymbol-v$version-x86_64-pc-windows-msvc.zip"
+Invoke-WebRequest "https://github.com/yazanmwk/TypeSymbol/releases/download/v$version/checksums.txt" -OutFile "checksums.txt"
+$expected = (Select-String -Path .\checksums.txt -Pattern "typesymbol-v$version-x86_64-pc-windows-msvc.zip").ToString().Split(" ")[0]
+$actual = (Get-FileHash ".\typesymbol-v$version-x86_64-pc-windows-msvc.zip" -Algorithm SHA256).Hash.ToLower()
+if ($expected -eq $actual) { "Checksum OK" } else { throw "Checksum mismatch" }
+```
+
+macOS:
+
+```bash
+VERSION="0.1.0"
+curl -L -o "typesymbol-v${VERSION}-aarch64-apple-darwin.tar.gz" "https://github.com/yazanmwk/TypeSymbol/releases/download/v${VERSION}/typesymbol-v${VERSION}-aarch64-apple-darwin.tar.gz"
+curl -L -o "checksums.txt" "https://github.com/yazanmwk/TypeSymbol/releases/download/v${VERSION}/checksums.txt"
+grep "typesymbol-v${VERSION}-aarch64-apple-darwin.tar.gz" checksums.txt | shasum -a 256 -c -
 ```
 
 ## Windows (PowerShell from source)

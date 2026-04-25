@@ -20,7 +20,7 @@
 
 [![Release](https://img.shields.io/github/v/release/yazanmwk/TypeSymbol?style=for-the-badge&logo=github&logoColor=fff&label=release&labelColor=18181b&color=3178C6)](https://github.com/yazanmwk/TypeSymbol/releases)
 [![Release workflow](https://img.shields.io/github/actions/workflow/status/yazanmwk/TypeSymbol/release.yml?style=for-the-badge&logo=githubactions&logoColor=fff&label=build&labelColor=18181b&color=ba53e6)](https://github.com/yazanmwk/TypeSymbol/actions/workflows/release.yml)
-[![WinGet](https://img.shields.io/badge/winget-yazanmwk.TypeSymbol-0078D4?style=for-the-badge&logo=windows&logoColor=fff&labelColor=18181b)](https://github.com/yazanmwk/TypeSymbol#install)
+[![Windows Installer](https://img.shields.io/badge/windows-installer-0078D4?style=for-the-badge&logo=windows&logoColor=fff&labelColor=18181b)](https://github.com/yazanmwk/TypeSymbol/releases/latest)
 
 <br/>
 
@@ -71,13 +71,33 @@ flowchart LR
 
 ## Install
 
-### Windows (fastest)
+### Windows (GitHub installer - recommended)
 
 ```powershell
-winget install --id yazanmwk.TypeSymbol
+irm https://raw.githubusercontent.com/yazanmwk/TypeSymbol/main/scripts/install-windows-release.ps1 | iex
 ```
 
 Then open a new terminal and run `typesymbol`.
+
+Security-first option (review before running):
+
+```powershell
+Invoke-WebRequest https://raw.githubusercontent.com/yazanmwk/TypeSymbol/main/scripts/install-windows-release.ps1 -OutFile install-typesymbol.ps1
+Get-Content .\install-typesymbol.ps1
+.\install-typesymbol.ps1
+```
+
+Version-pinned install:
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/yazanmwk/TypeSymbol/main/scripts/install-windows-release.ps1))) -Version 0.1.0
+```
+
+Manual install from release assets is also supported:
+
+1. Download `typesymbol-vX.Y.Z-x86_64-pc-windows-msvc.zip` from [Releases](https://github.com/yazanmwk/TypeSymbol/releases).
+2. Verify it with `checksums.txt`.
+3. Extract `typesymbol.exe` into a folder on your `PATH` (for example `%USERPROFILE%\bin`).
 
 ### macOS (Homebrew — recommended)
 
@@ -137,7 +157,7 @@ typesymbol daemon status
 | **System-wide** | Works across apps—not a plugin for a single editor. |
 | **Fast core** | Parser and rules run in Rust. |
 | **Hackable** | Config-driven rules; CLI + TUI for inspection and control. |
-| **Ships cleanly** | Automated [releases](docs/releasing.md): GitHub binaries, [WinGet](docs/winget.md), and [Homebrew tap](docs/homebrew-tap.md) workflows. |
+| **Ships cleanly** | Automated [releases](docs/releasing.md): signed source history, reproducible binary assets + checksums, and [Homebrew tap](docs/homebrew-tap.md). |
 
 ---
 
@@ -155,7 +175,7 @@ Rust crates live under `crates/`. Top level keeps docs, packaging, scripts, and 
 | `crates/typesymbol-cli` | CLI and TUI entrypoint |
 | `docs/` | Install guides, releasing, security, PRD |
 | `scripts/` | Installers and packaging helpers |
-| `.github/workflows/` | Release, WinGet, Homebrew automation |
+| `.github/workflows/` | Release and Homebrew automation |
 
 ---
 
@@ -167,7 +187,6 @@ Index of all guides: **[docs/README.md](docs/README.md)**.
 | --- | --- |
 | [docs/install.md](docs/install.md) | Detailed install, PATH, and platform notes |
 | [docs/releasing.md](docs/releasing.md) | Cutting a version and release artifacts |
-| [docs/winget.md](docs/winget.md) | WinGet package maintenance |
 | [docs/homebrew-tap.md](docs/homebrew-tap.md) | Homebrew tap |
 | [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | Build from source, tests, packaging overrides for forks |
 | [docs/PRD.md](docs/PRD.md) | Product requirements (vision and goals) |

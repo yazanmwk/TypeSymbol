@@ -10,6 +10,7 @@ This is fully automated once set up.
   - `typesymbol-vX.Y.Z-x86_64-apple-darwin.tar.gz`
   - `typesymbol-vX.Y.Z-aarch64-apple-darwin.tar.gz`
   - `typesymbol-vX.Y.Z-x86_64-pc-windows-msvc.zip`
+  - `typesymbol-vX.Y.Z-install-windows.ps1`
   - `checksums.txt`
 - Publishes all artifacts to a GitHub Release automatically.
 
@@ -43,18 +44,6 @@ Then copy it into your tap repository under:
 - Standard tap for this project: `yazanmwk/homebrew-tap`
 - Setup guide: [homebrew-tap.md](homebrew-tap.md)
 
-### Winget manifest generation
-
-```powershell
-.\scripts\generate-winget-manifests.ps1 -Version 0.1.0 -ChecksumsFile .\checksums.txt
-```
-
-Output:
-- `packaging/winget/manifests/y/yazanmwk/TypeSymbol/0.1.0/*.yaml`
-
-Then submit those generated files to:
-- `microsoft/winget-pkgs`
-
 ## Implemented automation
 
 - Homebrew tap PR automation is included:
@@ -62,28 +51,5 @@ Then submit those generated files to:
   - Trigger: release published
   - Action: opens a PR in the `owner/homebrew-tap` repo for the same GitHub user/org as the release (see workflow) updating `Formula/typesymbol.rb`
 
-- WinGet PR automation is included:
-  - `.github/workflows/publish-winget.yml`
-  - Trigger: release published
-  - Action: opens PR in `microsoft/winget-pkgs` with manifests under the usual `manifests/<first-letter-of-owner>/<owner>/TypeSymbol/<version>/` tree (the workflow lowercases the owner to match the WinGet layout)
-
 One-time required secret in this repo:
 - `HOMEBREW_TAP_TOKEN` (token with write access to your `homebrew-tap` repo)
-- `WINGET_PKGS_TOKEN` (token that can push to your `winget-pkgs` fork and create PRs)
-
-## WinGet one-time setup
-
-Before automation can submit PRs to `microsoft/winget-pkgs`:
-
-1. Fork `microsoft/winget-pkgs` to your GitHub account.
-2. Create a Personal Access Token that can:
-   - push branches to your fork
-   - open pull requests
-3. Save that token in this repo as `WINGET_PKGS_TOKEN`.
-4. The workflow pushes to `your-github-username/winget-pkgs` automatically (from `github.repository_owner`). It must match your actual fork of `microsoft/winget-pkgs`.
-
-After this setup, each published release (`vX.Y.Z`) will automatically open a WinGet update PR.
-
-Detailed guide:
-
-- [winget.md](winget.md)

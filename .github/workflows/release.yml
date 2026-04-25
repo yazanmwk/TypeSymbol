@@ -86,12 +86,15 @@ jobs:
           New-Item -ItemType Directory -Force -Path dist | Out-Null
           Copy-Item target/release/typesymbol.exe dist/typesymbol.exe -Force
           Compress-Archive -Path dist/typesymbol.exe -DestinationPath "$name.zip" -Force
+          Copy-Item scripts/install-windows-release.ps1 "typesymbol-$tag-install-windows.ps1" -Force
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: typesymbol-x86_64-pc-windows-msvc
-          path: typesymbol-*.zip
+          path: |
+            typesymbol-*.zip
+            typesymbol-*-install-windows.ps1
 
   publish-release:
     name: Publish GitHub Release

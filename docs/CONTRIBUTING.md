@@ -28,13 +28,10 @@ Release automation and local packaging scripts assume a default GitHub org/user.
 
 | Variable | Used by | Purpose |
 | --- | --- | --- |
-| `TYPESYMBOL_GITHUB_REPO` | `scripts/generate-homebrew-formula.sh`, `scripts/generate-winget-manifests.ps1` | `owner/TypeSymbol` for release URLs (default: `yazanmwk/TypeSymbol`) |
+| `TYPESYMBOL_GITHUB_REPO` | `scripts/generate-homebrew-formula.sh` | `owner/TypeSymbol` for release URLs (default: `yazanmwk/TypeSymbol`) |
 | `HOMEBREW_TAP_REPO` | Homebrew script | `owner/homebrew-tap` (default: `yazanmwk/homebrew-tap`) |
-| `WINGET_PUBLISHER` | WinGet PowerShell script | WinGet path/publisher segment (default: `yazanmwk`) |
 
 For **Homebrew** automation in GitHub Actions, the workflow uses `TAP_REPO: ${{ github.repository_owner }}/homebrew-tap`. If your tap’s repository name is not `homebrew-tap`, edit [`.github/workflows/publish-homebrew-tap.yml`](.github/workflows/publish-homebrew-tap.yml) accordingly.
-
-For **WinGet**, paths and the fork to push to are derived from `github.repository_owner` in [`.github/workflows/publish-winget.yml`](.github/workflows/publish-winget.yml), and the manifest step passes `TYPESYMBOL_GITHUB_REPO` and `WINGET_PUBLISHER` via the environment. You still need a `WINGET_PKGS_TOKEN` with access to your `winget-pkgs` fork.
 
 ## Product context
 

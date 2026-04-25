@@ -1,0 +1,56 @@
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+  categories:
+    - title: Breaking changes
+      labels:
+        - breaking-change
+    - title: Features
+      labels:
+        - feature
+        - enhancement
+    - title: Fixes
+      labels:
+        - bug
+        - fix
+    - title: Documentation
+      labels:
+        - docs
+    - title: Maintenance
+      labels:
+        - chore
+        - ci
+
+template: |
+  ## Install
+
+  ### Windows (recommended)
+
+  PowerShell one-liner:
+  ```powershell
+  irm https://raw.githubusercontent.com/yazanmwk/TypeSymbol/main/scripts/install-windows-release.ps1 | iex
+  ```
+
+  Version-pinned install:
+  ```powershell
+  & ([scriptblock]::Create((irm https://raw.githubusercontent.com/yazanmwk/TypeSymbol/main/scripts/install-windows-release.ps1))) -Version X.Y.Z
+  ```
+
+  Direct assets are attached to this release:
+  - `typesymbol-vX.Y.Z-x86_64-pc-windows-msvc.zip`
+  - `typesymbol-vX.Y.Z-install-windows.ps1`
+  - `checksums.txt`
+
+  Verify downloaded files with `checksums.txt` before manual installation.
+
+  ### macOS
+
+  ```bash
+  brew tap yazanmwk/tap
+  brew install typesymbol
+  ```
+
+  ## What's Changed
+
+  $CHANGES
