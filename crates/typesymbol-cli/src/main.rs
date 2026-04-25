@@ -24,11 +24,12 @@ const COMPACT_MIN_WIDTH: usize = 70;
 const DEFAULT_TERMINAL_WIDTH: usize = 78;
 const PANEL_INNER_WIDTH: usize = 62;
 const PROMPT_SYMBOL: &str = "∫";
+const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(Parser)]
 #[command(
     name = "typesymbol",
-    version = "0.1",
+    version = APP_VERSION,
     about = "System-wide math shorthand daemon"
 )]
 struct Cli {
@@ -487,12 +488,32 @@ fn draw_tui(frame: &mut ratatui::Frame<'_>, app: &TuiApp) {
         Screen::Config => draw_config(frame, root[1], app, color_enabled),
     }
 
-    let footer = Paragraph::new("↑/↓ move  Enter select  Esc back  ? help  q quit")
-        .style(if color_enabled {
-            Style::default().fg(Color::Rgb(210, 150, 225))
-        } else {
-            Style::default()
-        })
+    let help_text = "↑/↓ move  Enter select  Esc back  ? help  q quit";
+    let version_text = format!("v{}", APP_VERSION);
+    let footer_width = root[2].width as usize;
+    let gap = footer_width.saturating_sub(help_text.len() + version_text.len() + 2).max(2);
+    let footer_line = Line::from(vec![
+        Span::styled(
+            help_text,
+            if color_enabled {
+                Style::default().fg(Color::Rgb(210, 150, 225))
+            } else {
+                Style::default()
+            },
+        ),
+        Span::raw(" ".repeat(gap)),
+        Span::styled(
+            version_text,
+            if color_enabled {
+                Style::default()
+                    .fg(Color::Rgb(255, 92, 203))
+                    .add_modifier(Modifier::DIM)
+            } else {
+                Style::default().add_modifier(Modifier::DIM)
+            },
+        ),
+    ]);
+    let footer = Paragraph::new(footer_line)
         .block(
             Block::default().borders(Borders::TOP).border_style(if color_enabled {
                 Style::default().fg(Color::Rgb(186, 83, 230))
@@ -1388,6 +1409,8 @@ fn render_header(theme: &RenderTheme, width: usize) -> String {
             "            system-wide math typing helper".to_string(),
         ]);
     }
+    let version_badge = format!("v{}", APP_VERSION);
+    lines.push(format!("{:>width$}", version_badge, width = inner_width.saturating_sub(2)));
     lines.push(String::new());
     let mut out = render_box(&lines, inner_width, theme);
     out.push('\n');
@@ -1765,6 +1788,7 @@ fn colorize_header(mut rendered: String) -> String {
         "system-wide math typing helper",
         &ansi("system-wide math typing helper", "2;37"),
     );
+    rendered = rendered.replace(&format!("v{}", APP_VERSION), &ansi(&format!("v{}", APP_VERSION), "2;95"));
     rendered
 }
 
