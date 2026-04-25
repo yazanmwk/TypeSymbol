@@ -9,6 +9,10 @@
 
 <br/>
 
+<img src="docs/readme-gradient.svg" width="520" height="6" alt="Gradient divider" />
+
+<br/>
+
 [![macOS](https://img.shields.io/badge/macOS-Supported-111827?style=for-the-badge&logo=apple&logoColor=white)](docs/install.md)
 [![Windows](https://img.shields.io/badge/Windows-Supported-0078D4?style=for-the-badge&logo=windows&logoColor=white)](docs/install.md)
 [![Syntax Guide](https://img.shields.io/badge/Syntax-Guide-7C3AED?style=for-the-badge&logo=bookstack&logoColor=white)](docs/syntax-guide.md)
@@ -54,48 +58,50 @@ It is built for one goal: reduce friction between thinking in math and writing i
 
 ## How it works
 
+### Runtime flow
+
 ```mermaid
 %%{init: { "theme": "base", "themeVariables": { "primaryColor": "#1a1020", "primaryTextColor": "#e8e0f0", "lineColor": "#ba53e6", "tertiaryColor": "#1f1630" } } }%%
-flowchart LR
-    subgraph user [You]
-        A[Type shorthand in any app]
-        B[Press trigger key enter or ctrl-space]
-    end
-
-    subgraph guard [Safety + context]
-        C[Check daemon is running]
-        D{App excluded?}
-        E[Pass through unchanged]
-    end
-
-    subgraph engine [TypeSymbol pipeline]
-        F[Normalize input spacing and phrase forms]
-        G[Apply core symbol rules aliases and operators]
-        H[Apply math packs integrals sums products limits transforms sets probability]
-        I[Apply scripts and roots superscript subscript sqrt]
-        J[Assemble final Unicode output]
-    end
-
-    subgraph controls [Control surface]
-        K[typesymbol on or off]
-        L[typesymbol config show or init]
-        M[typesymbol test input]
-    end
-
-    subgraph output [System]
-        N[Inject output into focused app]
-        O[You see formatted math instantly]
-    end
+flowchart TB
+    A[Type shorthand in any app]
+    B[Press trigger key enter or ctrl-space]
+    C[Check daemon is running]
+    D{App excluded?}
+    E[Pass through unchanged]
+    F[Normalize input spacing and phrase forms]
+    G[Apply core symbol rules aliases and operators]
+    H[Apply math packs integrals sums products limits transforms sets probability]
+    I[Apply scripts and roots superscript subscript sqrt]
+    J[Assemble final Unicode output]
+    K[Inject output into focused app]
+    L[You see formatted math instantly]
 
     A --> B --> C --> D
     D -- yes --> E
-    D -- no --> F
-    F --> G --> H --> I --> J --> N --> O
+    D -- no --> F --> G --> H --> I --> J --> K --> L
+```
 
-    K -. toggles runtime .-> C
-    L -. controls rules and trigger .-> F
-    L -. controls rule sets .-> G
-    M -. preview without injection .-> J
+### Control flow
+
+```mermaid
+%%{init: { "theme": "base", "themeVariables": { "primaryColor": "#1a1020", "primaryTextColor": "#e8e0f0", "lineColor": "#ba53e6", "tertiaryColor": "#1f1630" } } }%%
+flowchart TB
+    C1[typesymbol on or off]
+    C2[typesymbol daemon status]
+    C3[typesymbol config init]
+    C4[typesymbol config show]
+    C5[typesymbol test input]
+    R1[Runtime enabled or paused]
+    R2[Health visibility]
+    R3[Config baseline created]
+    R4[Active rules and trigger inspected]
+    R5[Preview without live injection]
+
+    C1 --> R1
+    C2 --> R2
+    C3 --> R3
+    C4 --> R4
+    C5 --> R5
 ```
 
 1. A **cross-platform Rust engine** parses and expands your math shorthand.  
