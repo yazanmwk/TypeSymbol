@@ -59,7 +59,7 @@ It is built for one goal: reduce friction between thinking in math and writing i
 flowchart LR
     subgraph user [You]
         A[Type shorthand in any app]
-        B[Press trigger key<br/>enter or ctrl-space]
+        B[Press trigger key enter or ctrl-space]
     end
 
     subgraph guard [Safety + context]
@@ -69,17 +69,17 @@ flowchart LR
     end
 
     subgraph engine [TypeSymbol pipeline]
-        F[Normalize input<br/>spacing and phrase forms]
-        G[Apply core symbol rules<br/>aliases + operators]
-        H[Apply math packs<br/>integrals, sums, products, limits,<br/>transforms, sets, probability]
-        I[Apply scripts and roots<br/>super/subscript + sqrt]
+        F[Normalize input spacing and phrase forms]
+        G[Apply core symbol rules aliases and operators]
+        H[Apply math packs integrals sums products limits transforms sets probability]
+        I[Apply scripts and roots superscript subscript sqrt]
         J[Assemble final Unicode output]
     end
 
     subgraph controls [Control surface]
         K[typesymbol on or off]
         L[typesymbol config show or init]
-        M[typesymbol test "..."]
+        M[typesymbol test input]
     end
 
     subgraph output [System]
