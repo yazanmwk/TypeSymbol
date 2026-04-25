@@ -39,7 +39,7 @@
 | `int 0 -> inf x` | **∫₀^∞ x dx** |
 | `sum_(i=1)^n i^2` | **∑ᵢ₌₁ⁿ i²** |
 
-*Transforms follow your [config](docs/install.md) (Greek, operators, integrals, sums, and more). Use `typesymbol test "..."` to preview any string.*
+*Transforms follow your [config](docs/install.md) (Greek, operators, integrals, sums, products, limits, transforms, set logic, probability/statistics, scripts, and more). Use `typesymbol test "..."` to preview any string.*
 
 ---
 
@@ -164,6 +164,29 @@ typesymbol config show
 # Daemon
 typesymbol daemon status
 ```
+
+---
+
+## Syntax types supported
+
+TypeSymbol can replace shorthand across all of these symbol families:
+
+- Greek aliases (`alpha`, `theta`, `pi`, `inf`)
+- Operators (`->`, `<-`, `<->`, `!=`, `<=`, `>=`, `+-`)
+- Superscripts and subscripts (`x^10`, `x_i`, `a_1`)
+- Square roots (`sqrt(x)`, `sqrt x`)
+- Integrals (strict + phrase forms, including bounds and inferred differential)
+- Summations (`sum_(i=1)^n`, `sum from i=1 to n of ...`)
+- Products (`product from i = 1 to n of ...`)
+- Limits (`limit x to 0 of ...`, `lim (t->inf) ...`)
+- Transform notation (Laplace/Fourier + inverse forms)
+- Partial derivatives (`partial/partial x ...`)
+- Quantifiers and set membership (`for all`, `exists`, `in`, `not in`)
+- Set operators (`subseteq`, `union`, `intersection`)
+- Probability/statistics (`probability of ...`, `expected value of ...`, `variance of ...`)
+- Natural-language power phrase (`x power of 2` -> `x²`)
+
+Complete syntax examples: [docs/syntax-guide.md](docs/syntax-guide.md)
 
 ---
 
