@@ -84,6 +84,13 @@ typesymbol test "alpha -> beta"
 typesymbol daemon status
 ```
 
+Update later with:
+
+```bash
+typesymbol update check
+typesymbol update
+```
+
 Default CLI interface (Windows): run `typesymbol` with no arguments to open the interactive command shell.
 Common commands in that shell: `on`, `off`, `daemon status`, `config show`, `help`, `exit`.
 

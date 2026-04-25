@@ -63,6 +63,12 @@ enum Commands {
     },
     /// Run interactive CLI app mode (REPL)
     App,
+    /// Check for updates or update this installation
+    Update {
+        /// Only check whether an update is available
+        #[arg(long)]
+        check: bool,
+    },
 }
 
 #[derive(Subcommand)]
@@ -216,6 +222,7 @@ fn main() {
             }
         },
         Some(Commands::App) => run_app_mode(config),
+        Some(Commands::Update { check }) => run_self_update(*check),
         None => {
             if cfg!(windows) {
                 run_settings_shell(resolve_config(&cli), cli.config.clone());
@@ -1186,6 +1193,8 @@ fn run_settings_shell(mut loaded: LoadedConfig, config_path: Option<PathBuf>) {
                     )
                 );
             }
+            "update" => run_self_update(false),
+            "update check" => run_self_update(true),
             _ => {
                 if let Some(expr) = line.strip_prefix("test ") {
                     let engine = CoreEngine::new(loaded.config.clone());
@@ -1420,7 +1429,7 @@ fn render_dashboard(
         };
         let integral_col = 6usize;
         let text_col = 20usize;
-        let mut right_rows = vec![String::new(); art.len() + 1];
+        let mut right_rows = vec![String::new(); art.len() + 2];
         right_rows[0] = "Status".to_string();
         right_rows[1] = format!("{:<12} {}", "Service", format!("{service_dot} {service_state}"));
         right_rows[2] = format!("{:<12} {}", "Config", config_summary);
@@ -1429,8 +1438,9 @@ fn render_dashboard(
         right_rows[6] = format!("{:<12} {}", "on", "Start daemon");
         right_rows[7] = format!("{:<12} {}", "off", "Stop daemon");
         right_rows[8] = format!("{:<12} {}", "config show", "View active config");
-        right_rows[9] = format!("{:<12} {}", "help", "Show all commands");
-        right_rows[10] = format!("{:<12} {}", "exit", "Close settings shell");
+        right_rows[9] = format!("{:<12} {}", "update", "Upgrade via Homebrew");
+        right_rows[10] = format!("{:<12} {}", "help", "Show all commands");
+        right_rows[11] = format!("{:<12} {}", "exit", "Close settings shell");
 
         for i in 0..right_rows.len() {
             let mut line = String::new();
@@ -1451,6 +1461,7 @@ fn render_dashboard(
             "    on           Start daemon".to_string(),
             "    off          Stop daemon".to_string(),
             "    config show  View active config".to_string(),
+            "    update       Upgrade via Homebrew".to_string(),
             "    help         Show all commands".to_string(),
             "    exit         Close settings shell".to_string(),
         ]);
@@ -1490,7 +1501,7 @@ fn render_box(lines: &[String], inner_width: usize, theme: &RenderTheme) -> Stri
 
 fn render_help(theme: &RenderTheme, width: usize) -> String {
     if width < COMPACT_MIN_WIDTH {
-        return "TypeSymbol Help\n\nQuick Commands\n  on        Start daemon\n  off       Stop daemon\n  help      Show help\n  exit      Close shell\n\nConfig\n  config show\n  config set <key> <value>\n  config init\n\nDaemon\n  daemon status\n  daemon stop\n  daemon enable\n  daemon disable\n\nTesting\n  test <expr>\n".to_string();
+        return "TypeSymbol Help\n\nQuick Commands\n  on        Start daemon\n  off       Stop daemon\n  update    Upgrade via Homebrew (macOS)\n  help      Show help\n  exit      Close shell\n\nConfig\n  config show\n  config set <key> <value>\n  config init\n\nDaemon\n  daemon status\n  daemon stop\n  daemon enable\n  daemon disable\n\nTesting\n  test <expr>\n".to_string();
     }
 
     let quick = [
@@ -1505,6 +1516,10 @@ fn render_help(theme: &RenderTheme, width: usize) -> String {
         CommandItem {
             command: "help",
             description: "Show this help screen",
+        },
+        CommandItem {
+            command: "update",
+            description: "Upgrade via Homebrew (macOS)",
         },
         CommandItem {
             command: "exit",
@@ -1761,13 +1776,14 @@ fn colorize_dashboard(mut rendered: String, service_on: bool) -> String {
             &format!("{} {}", ansi("*", "1;91"), ansi("off", "1;97")),
         );
     }
-    for command in ["on", "off", "config show", "help", "exit"] {
+    for command in ["on", "off", "config show", "update", "help", "exit"] {
         rendered = rendered.replace(command, &ansi(command, "1;97"));
     }
     for desc in [
         "Start daemon",
         "Stop daemon",
         "View active config",
+        "Upgrade via Homebrew",
         "Show all commands",
         "Close settings shell",
     ] {
@@ -1785,6 +1801,7 @@ fn colorize_help(mut rendered: String) -> String {
         "on",
         "off",
         "help",
+        "update",
         "exit",
         "config show",
         "config set",
@@ -1801,6 +1818,7 @@ fn colorize_help(mut rendered: String) -> String {
         "Start background daemon",
         "Stop daemon",
         "Show this help screen",
+        "Upgrade via Homebrew (macOS)",
         "Close settings shell",
         "View active config",
         "Update a config value",
@@ -2510,6 +2528,87 @@ fn run_app_mode(config: TypeSymbolConfig) {
             }
         }
     }
+}
+
+fn run_self_update(check_only: bool) {
+    if !cfg!(target_os = "macos") {
+        println!("Automatic update is currently supported on macOS Homebrew installs.");
+        println!("Download the latest release from:");
+        println!("https://github.com/yazanmwk/TypeSymbol/releases/latest");
+        return;
+    }
+
+    if !command_exists("brew") {
+        eprintln!("Homebrew is not installed or not on PATH.");
+        process::exit(1);
+    }
+
+    if check_only {
+        let output = Command::new("brew")
+            .args(["outdated", "--formula", "typesymbol"])
+            .output();
+        match output {
+            Ok(result) if result.status.success() => {
+                if String::from_utf8_lossy(&result.stdout).trim().is_empty() {
+                    println!("TypeSymbol is up to date.");
+                } else {
+                    println!("Update available. Run: typesymbol update");
+                }
+            }
+            Ok(_) => {
+                eprintln!("Failed to check updates via Homebrew.");
+                process::exit(1);
+            }
+            Err(err) => {
+                eprintln!("Failed to run Homebrew: {}", err);
+                process::exit(1);
+            }
+        }
+        return;
+    }
+
+    println!("Updating Homebrew metadata...");
+    let update_status = Command::new("brew").arg("update").status();
+    match update_status {
+        Ok(status) if status.success() => {}
+        Ok(_) => {
+            eprintln!("brew update failed.");
+            process::exit(1);
+        }
+        Err(err) => {
+            eprintln!("Failed to run brew update: {}", err);
+            process::exit(1);
+        }
+    }
+
+    println!("Upgrading TypeSymbol...");
+    let upgrade_status = Command::new("brew")
+        .args(["upgrade", "typesymbol"])
+        .status();
+    match upgrade_status {
+        Ok(status) if status.success() => {
+            println!("TypeSymbol update complete.");
+            println!("Tip: run `typesymbol --version` to verify.");
+        }
+        Ok(_) => {
+            eprintln!("brew upgrade typesymbol failed.");
+            process::exit(1);
+        }
+        Err(err) => {
+            eprintln!("Failed to run brew upgrade: {}", err);
+            process::exit(1);
+        }
+    }
+}
+
+fn command_exists(name: &str) -> bool {
+    Command::new(name)
+        .arg("--version")
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false)
 }
 
 fn print_config(loaded: &LoadedConfig) {

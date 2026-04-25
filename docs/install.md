@@ -15,6 +15,13 @@ brew install typesymbol
 
 or `brew install yazanmwk/homebrew-tap/typesymbol`. For tap setup and version bumps, see [homebrew-tap.md](homebrew-tap.md).
 
+To keep your machine up to date after install:
+
+```bash
+typesymbol update check
+typesymbol update
+```
+
 ### Build from this repository
 
 From repository root:
