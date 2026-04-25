@@ -152,7 +152,8 @@ pub fn inject_replacement(
         let _ = enigo.key(Key::Backspace, Direction::Click);
     }
     let _ = enigo.key(Key::Control, Direction::Press);
-    let _ = enigo.key(Key::Unicode('v'), Direction::Click);
+    // On Windows, enigo expects virtual keys for modified shortcuts (Ctrl+V).
+    let _ = enigo.key(Key::V, Direction::Click);
     let _ = enigo.key(Key::Control, Direction::Release);
     thread::sleep(Duration::from_millis(50));
 

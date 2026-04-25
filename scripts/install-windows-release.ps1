@@ -43,6 +43,17 @@ function Add-ToUserPath {
     [System.Environment]::SetEnvironmentVariable("Path", "$current;$PathToAdd", "User")
 }
 
+function Add-ToCurrentSessionPath {
+    param([string]$PathToAdd)
+
+    $segments = $env:Path -split ";"
+    if ($segments -contains $PathToAdd) {
+        return
+    }
+
+    $env:Path = "$env:Path;$PathToAdd"
+}
+
 function Test-VcRuntimePresent {
     $system32 = Join-Path $env:WINDIR "System32"
     $required = @(
@@ -124,6 +135,41 @@ function Stop-RunningTypeSymbol {
     }
 }
 
+function Configure-WindowsAutostart {
+    param([string]$InstalledExePath)
+
+    $taskName = "TypeSymbolDaemon"
+    $runCommand = "`"$InstalledExePath`" daemon run-internal"
+
+    & schtasks /Create /TN $taskName /SC ONLOGON /TR $runCommand /F 2>$null | Out-Null
+    if ($LASTEXITCODE -eq 0) {
+        Write-Log "Autostart configured via Task Scheduler."
+        return
+    }
+
+    $regPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
+    try {
+        New-Item -Path $regPath -Force | Out-Null
+        New-ItemProperty -Path $regPath -Name $taskName -PropertyType String -Value $runCommand -Force | Out-Null
+        Write-Log "Autostart configured via HKCU Run key."
+    }
+    catch {
+        Write-Warning "Autostart setup failed (Task Scheduler + HKCU Run key). You can still start manually with: `"$InstalledExePath`" on"
+    }
+}
+
+function Start-TypeSymbolDaemon {
+    param([string]$InstalledExePath)
+
+    $stateDir = Join-Path $env:LOCALAPPDATA "TypeSymbol\state"
+    New-Item -ItemType Directory -Force -Path $stateDir | Out-Null
+    $logPath = Join-Path $stateDir "daemon.log"
+
+    $proc = Start-Process -FilePath $InstalledExePath -ArgumentList @("daemon", "run-internal") -WindowStyle Hidden -PassThru
+    Write-Host "Started TypeSymbol daemon in background (pid $($proc.Id))."
+    Write-Host "Logs: $logPath"
+}
+
 $tag = Resolve-Tag -RequestedVersion $Version
 $assetTag = $tag
 
@@ -161,15 +207,27 @@ try {
     Copy-Item (Join-Path $tempDir "typesymbol.exe") $installedExe -Force
 
     Add-ToUserPath -PathToAdd $InstallDir
+    Add-ToCurrentSessionPath -PathToAdd $InstallDir
+
+    Write-Log "Configuring TypeSymbol autostart..."
+    Configure-WindowsAutostart -InstalledExePath $installedExe
 
     Write-Log "Starting TypeSymbol daemon..."
-    & $installedExe on | Out-Host
+    Start-TypeSymbolDaemon -InstalledExePath $installedExe
+
+    Write-Log "Verifying CLI..."
+    $smoke = & $installedExe test "alpha -> beta"
+    if ($smoke -ne "α → β") {
+        throw "CLI verification failed. Expected 'α → β', got '$smoke'"
+    }
+    Write-Host "CLI smoke test: ok (alpha -> beta => $smoke)"
+    Write-Host "CLI shell: run 'typesymbol' (no args) to open the interactive interface."
 
     Write-Log "Install complete."
     Write-Log "Quick checks:"
     Write-Host "  $installedExe test `"alpha -> beta`""
     Write-Host "  $installedExe daemon status"
-    Write-Log "Restart PowerShell, then run: typesymbol test `"alpha -> beta`""
+    Write-Log "Run now: typesymbol"
 }
 finally {
     if (Test-Path $tempDir) {

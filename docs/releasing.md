@@ -60,3 +60,25 @@ Then copy it into your tap repository under:
 
 One-time required secret in this repo:
 - `HOMEBREW_TAP_TOKEN` (token with write access to your `homebrew-tap` repo)
+
+## Optional: auto-sync on every commit
+
+If you want local commits to always refresh installer metadata:
+
+1. Enable repo hooks once:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+2. Commit as usual.
+
+The pre-commit hook runs `scripts/sync-release-metadata.sh`, which:
+- Regenerates `packaging/homebrew/typesymbol.rb` from the latest release `checksums.txt`
+- Stages `packaging/homebrew/typesymbol.rb` and `scripts/install-windows-release.ps1`
+
+Manual run (without hook):
+
+```bash
+./scripts/sync-release-metadata.sh
+```

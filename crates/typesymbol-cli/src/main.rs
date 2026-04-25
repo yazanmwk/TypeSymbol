@@ -442,13 +442,20 @@ fn handle_config_action(app: &mut TuiApp) -> io::Result<()> {
 fn draw_tui(frame: &mut ratatui::Frame<'_>, app: &TuiApp) {
     let size = frame.area();
     let color_enabled = supports_color();
-    let header_lines = build_tui_header_lines(size.width, size.height, color_enabled);
-    let header_height = (header_lines.len() as u16).saturating_add(2).max(6);
+    let body_min_height = 13u16;
+    let footer_height = 1u16;
+    let header_border = 2u16;
+    let header_line_budget = size
+        .height
+        .saturating_sub(body_min_height.saturating_add(footer_height).saturating_add(header_border));
+    let header_lines =
+        build_tui_header_lines(size.width, header_line_budget.max(3), color_enabled);
+    let header_height = (header_lines.len() as u16).saturating_add(header_border).max(6);
     let root = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Length(header_height),
-            Constraint::Min(14),
+            Constraint::Min(body_min_height),
             Constraint::Length(1),
         ])
         .split(size);
@@ -513,11 +520,10 @@ fn trigger_key_from_code(code: KeyCode) -> Option<String> {
     }
 }
 
-fn build_tui_header_lines(width: u16, height: u16, color_enabled: bool) -> Vec<Line<'static>> {
-    let mut lines = vec![Line::from("")];
-    // Keep the dashboard fully visible on default macOS terminal sizes (often 80x24).
-    // Full stacked logo is only used when both width and height have enough headroom.
-    if width >= 110 && height >= 34 {
+fn build_tui_header_lines(width: u16, line_budget: u16, color_enabled: bool) -> Vec<Line<'static>> {
+    // Keep room for dashboard controls first, then spend remaining lines on branding.
+    // This keeps the full logo visible whenever possible without clipping menu content.
+    if width >= 110 && line_budget >= 13 {
         let type_rows = [
             "████████╗██╗   ██╗██████╗ ███████╗",
             "╚══██╔══╝╚██╗ ██╔╝██╔══██╗██╔════╝",
@@ -534,11 +540,12 @@ fn build_tui_header_lines(width: u16, height: u16, color_enabled: bool) -> Vec<L
             "███████║   ██║   ██║ ╚═╝ ██║██████╔╝╚██████╔╝███████╗",
             "╚══════╝   ╚═╝   ╚═╝     ╚═╝╚═════╝  ╚═════╝ ╚══════╝",
         ];
-        for (idx, row) in type_rows.iter().enumerate() {
+        let mut lines: Vec<Line<'static>> = Vec::new();
+        for row in type_rows {
             let line = if color_enabled {
                 gradient_wordmark_line(row)
             } else {
-                Line::from(Span::raw(*row))
+                Line::from(Span::raw(row))
             };
             lines.push(line.alignment(Alignment::Center));
         }
@@ -573,7 +580,10 @@ fn build_tui_header_lines(width: u16, height: u16, color_enabled: bool) -> Vec<L
             ),
         ];
         lines.push(Line::from(tagline).alignment(Alignment::Center));
-    } else if width >= 78 && height >= 28 {
+        return lines;
+    }
+
+    if width >= 78 && line_budget >= 8 {
         let type_rows = [
             "████████╗██╗   ██╗██████╗ ███████╗",
             "╚══██╔══╝╚██╗ ██╔╝██╔══██╗██╔════╝",
@@ -582,11 +592,12 @@ fn build_tui_header_lines(width: u16, height: u16, color_enabled: bool) -> Vec<L
             "   ██║      ██║   ██║     ███████╗",
             "   ╚═╝      ╚═╝   ╚═╝     ╚══════╝",
         ];
-        for (idx, row) in type_rows.iter().enumerate() {
+        let mut lines: Vec<Line<'static>> = Vec::new();
+        for row in type_rows {
             let line = if color_enabled {
                 gradient_wordmark_line(row)
             } else {
-                Line::from(Span::raw(*row))
+                Line::from(Span::raw(row))
             };
             lines.push(line.alignment(Alignment::Center));
         }
@@ -625,44 +636,41 @@ fn build_tui_header_lines(width: u16, height: u16, color_enabled: bool) -> Vec<L
             ))
             .alignment(Alignment::Center),
         );
-    } else {
-        lines.push(
-            Line::from(vec![
-                Span::styled(
-                    "∫ ",
-                    if color_enabled {
-                        Style::default()
-                            .fg(Color::LightMagenta)
-                            .add_modifier(Modifier::BOLD)
-                    } else {
-                        Style::default()
-                    },
-                ),
-                Span::styled(
-                    "TypeSymbol",
-                    if color_enabled {
-                        Style::default().fg(Color::White).add_modifier(Modifier::BOLD)
-                    } else {
-                        Style::default()
-                    },
-                ),
-            ])
-            .alignment(Alignment::Center),
-        );
-        lines.push(
-            Line::from(Span::styled(
-                "system-wide math typing helper",
+        return lines;
+    }
+
+    vec![
+        Line::from(vec![
+            Span::styled(
+                "∫ ",
                 if color_enabled {
-                    Style::default().fg(Color::Gray)
+                    Style::default()
+                        .fg(Color::LightMagenta)
+                        .add_modifier(Modifier::BOLD)
                 } else {
                     Style::default()
                 },
-            ))
-            .alignment(Alignment::Center),
-        );
-    }
-    lines.push(Line::from(""));
-    lines
+            ),
+            Span::styled(
+                "TypeSymbol",
+                if color_enabled {
+                    Style::default().fg(Color::White).add_modifier(Modifier::BOLD)
+                } else {
+                    Style::default()
+                },
+            ),
+        ])
+        .alignment(Alignment::Center),
+        Line::from(Span::styled(
+            "system-wide math typing helper",
+            if color_enabled {
+                Style::default().fg(Color::Gray)
+            } else {
+                Style::default()
+            },
+        ))
+        .alignment(Alignment::Center),
+    ]
 }
 
 fn gradient_wordmark_line(row: &str) -> Line<'static> {

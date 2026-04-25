@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(git rev-parse --show-toplevel)"
+
+if [[ -x "$ROOT_DIR/scripts/sync-release-metadata.sh" ]]; then
+  AUTO_STAGE=1 "$ROOT_DIR/scripts/sync-release-metadata.sh"
+else
+  echo "pre-commit: missing executable scripts/sync-release-metadata.sh" >&2
+  exit 1
+fi
