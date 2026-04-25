@@ -245,6 +245,8 @@ fn run_interactive_tui(loaded: LoadedConfig, config_path: Option<PathBuf>) -> io
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
     terminal.hide_cursor()?;
+    terminal.autoresize()?;
+    terminal.clear()?;
 
     let mut app = TuiApp {
         screen: Screen::Dashboard,
@@ -262,13 +264,21 @@ fn run_interactive_tui(loaded: LoadedConfig, config_path: Option<PathBuf>) -> io
         loop {
             terminal.draw(|f| draw_tui(f, &app))?;
             if event::poll(Duration::from_millis(120))? {
-                if let Event::Key(key) = event::read()? {
-                    if key.kind != KeyEventKind::Press {
-                        continue;
+                match event::read()? {
+                    Event::Key(key) => {
+                        if key.kind != KeyEventKind::Press {
+                            continue;
+                        }
+                        if handle_tui_key(&mut app, key.code)? {
+                            break;
+                        }
                     }
-                    if handle_tui_key(&mut app, key.code)? {
-                        break;
+                    Event::Resize(_, _) => {
+                        // Keep ratatui's cached viewport synchronized with terminal dimensions.
+                        terminal.autoresize()?;
+                        terminal.clear()?;
                     }
+                    _ => {}
                 }
             }
         }
