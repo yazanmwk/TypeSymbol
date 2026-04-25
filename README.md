@@ -135,7 +135,7 @@ brew install yazanmwk/homebrew-tap/typesymbol
 
 ```powershell
 # Windows
-irm https://raw.githubusercontent.com/yazanmwk/TypeSymbol/main/scripts/install-windows-release.ps1 | iex
+winget install --id yazanmwk.TypeSymbol --exact --source winget
 ```
 
 Verify:

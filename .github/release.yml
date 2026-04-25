@@ -25,7 +25,13 @@ changelog:
 template: |
   ## Install
 
-  ### Windows (recommended)
+  ### Windows (recommended: WinGet)
+
+  ```powershell
+  winget install --id yazanmwk.TypeSymbol --exact --source winget
+  ```
+
+  ### Windows (fallback: PowerShell installer)
 
   PowerShell one-liner:
   ```powershell

@@ -46,7 +46,32 @@ typesymbol
 
 If command is not found, add `~/.local/bin` to your shell PATH.
 
-## Windows (GitHub installer - recommended)
+## Windows (recommended)
+
+### WinGet (recommended)
+
+```powershell
+winget install --id yazanmwk.TypeSymbol --exact --source winget
+```
+
+Then run:
+
+```powershell
+typesymbol test "alpha -> beta"
+typesymbol daemon status
+```
+
+Manage with WinGet:
+
+```powershell
+# Upgrade to latest published version
+winget upgrade --id yazanmwk.TypeSymbol --exact --source winget
+
+# Uninstall
+winget uninstall --id yazanmwk.TypeSymbol --exact
+```
+
+### GitHub installer (fallback)
 
 If you just want to install TypeSymbol on Windows:
 
