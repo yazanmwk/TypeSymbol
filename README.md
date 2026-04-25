@@ -57,19 +57,45 @@ It is built for one goal: reduce friction between thinking in math and writing i
 ```mermaid
 %%{init: { "theme": "base", "themeVariables": { "primaryColor": "#1a1020", "primaryTextColor": "#e8e0f0", "lineColor": "#ba53e6", "tertiaryColor": "#1f1630" } } }%%
 flowchart LR
-    subgraph input [You]
-        A[Keyboard: shorthand]
+    subgraph user [You]
+        A[Type shorthand in any app]
+        B[Press trigger key<br/>enter or ctrl-space]
     end
-    subgraph typesymbol [TypeSymbol]
-        B[Core engine]
-        C[Platform adapter]
+
+    subgraph guard [Safety + context]
+        C[Check daemon is running]
+        D{App excluded?}
+        E[Pass through unchanged]
     end
-    subgraph out [System]
-        D[Unicode in the focused app]
+
+    subgraph engine [TypeSymbol pipeline]
+        F[Normalize input<br/>spacing and phrase forms]
+        G[Apply core symbol rules<br/>aliases + operators]
+        H[Apply math packs<br/>integrals, sums, products, limits,<br/>transforms, sets, probability]
+        I[Apply scripts and roots<br/>super/subscript + sqrt]
+        J[Assemble final Unicode output]
     end
-    A --> B
-    B --> C
-    C --> D
+
+    subgraph controls [Control surface]
+        K[typesymbol on or off]
+        L[typesymbol config show or init]
+        M[typesymbol test "..."]
+    end
+
+    subgraph output [System]
+        N[Inject output into focused app]
+        O[You see formatted math instantly]
+    end
+
+    A --> B --> C --> D
+    D -- yes --> E
+    D -- no --> F
+    F --> G --> H --> I --> J --> N --> O
+
+    K -. toggles runtime .-> C
+    L -. controls rules and trigger .-> F
+    L -. controls rule sets .-> G
+    M -. preview without injection .-> J
 ```
 
 1. A **cross-platform Rust engine** parses and expands your math shorthand.  
@@ -181,10 +207,10 @@ TypeSymbol/
 │   ├── typesymbol-platform-macos/    # Native macOS adapter
 │   ├── typesymbol-platform-windows/  # Native Windows adapter
 │   └── typesymbol-cli/               # CLI + TUI entrypoint
-├── docs/                             # Install, syntax, release, security
-├── scripts/                          # Install and packaging scripts
-└── .github/workflows/                # CI and release automation
+└── docs/                             # Install, syntax, contributing, security
 ```
+
+<sub>Release and packaging infrastructure is maintainer-only and intentionally omitted from this contributor-facing map.</sub>
 
 ---
 

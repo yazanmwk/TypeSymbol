@@ -7,5 +7,4 @@
 | [homebrew-tap.md](homebrew-tap.md) | Custom Homebrew tap and CI |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Building, testing, fork packaging |
 | [SECURITY.md](SECURITY.md) | Responsible disclosure |
-| [PRD.md](PRD.md) | Product requirements |
 | [syntax-guide.md](syntax-guide.md) | Shorthand syntax reference |
