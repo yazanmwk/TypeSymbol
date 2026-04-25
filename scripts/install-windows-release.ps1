@@ -88,6 +88,15 @@ function Ensure-VcRuntime {
     }
 }
 
+function Ensure-GitHubConnectivity {
+    try {
+        Resolve-DnsName github.com -ErrorAction Stop | Out-Null
+    }
+    catch {
+        throw "Cannot resolve github.com (DNS failure). Check internet/proxy/DNS settings, then rerun installer."
+    }
+}
+
 $tag = Resolve-Tag -RequestedVersion $Version
 $assetTag = $tag
 
@@ -107,9 +116,15 @@ $zipPath = Join-Path $tempDir $asset
 
 try {
     Ensure-VcRuntime
+    Ensure-GitHubConnectivity
 
     Write-Log "Downloading $asset..."
-    Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath
+    try {
+        Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath
+    }
+    catch {
+        throw "Failed to download release asset from GitHub ($downloadUrl). If DNS/proxy blocks github.com, use a different network or configure proxy, then rerun."
+    }
 
     Write-Log "Installing typesymbol.exe to $InstallDir..."
     New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
