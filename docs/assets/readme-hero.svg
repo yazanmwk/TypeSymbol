@@ -40,7 +40,9 @@
   <ellipse cx="700" cy="300" rx="400" ry="260" fill="url(#violet)"/>
 
   <g filter="url(#glow)">
-    <image href="TypeSymbol_logo.png" x="112" y="80" width="260" height="260"/>
+    <rect x="112" y="80" width="260" height="260" rx="38" fill="url(#line)" fill-opacity="0.18" stroke="#D9C6FF" stroke-opacity="0.7" stroke-width="3"/>
+    <text x="173" y="255" fill="#F8FAFF" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="150" font-weight="700">T</text>
+    <text x="258" y="262" fill="#F8FAFF" font-family="Times New Roman, Georgia, serif" font-size="172" font-weight="600">?</text>
   </g>
 
   <text x="430" y="168" fill="#F4F7FF" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="82" font-weight="700">TypeSymbol</text>

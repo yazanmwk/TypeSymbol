@@ -195,8 +195,19 @@ Index of all guides: **[docs/README.md](docs/README.md)**.
 
 Do not post suspected vulnerabilities in public issues first. See **[docs/SECURITY.md](docs/SECURITY.md)** for how to report them responsibly.
 
+---
+
+## Let's Connect
+
+[![GitHub](https://img.shields.io/badge/GitHub-TypeSymbol-111827?style=for-the-badge&logo=github&logoColor=white)](https://github.com/yazanmwk/TypeSymbol)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-yazanmwk-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/yazanmwk/)
+[![Email](https://img.shields.io/badge/Email-yazan.mw.k%40gmail.com-EA4335?style=for-the-badge&logo=gmail&logoColor=white)](mailto:yazan.mw.k@gmail.com)
+[![Issues](https://img.shields.io/badge/Issues-Open%20Tracker-DC2626?style=for-the-badge&logo=githubissues&logoColor=white)](https://github.com/yazanmwk/TypeSymbol/issues)
+
+---
+
 <div align="center">
 
-**[Releases](https://github.com/yazanmwk/TypeSymbol/releases)** · **[Issues](https://github.com/yazanmwk/TypeSymbol/issues)** · **[LinkedIn](https://www.linkedin.com/in/yazanmwk/)** · **[Email](mailto:yazan.mw.k@gmail.com)**
+**[Releases](https://github.com/yazanmwk/TypeSymbol/releases)** · **[Contributing](docs/CONTRIBUTING.md)** · **[Security](docs/SECURITY.md)**
 
 </div>
