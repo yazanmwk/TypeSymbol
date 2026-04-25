@@ -13,6 +13,7 @@ pub struct CoreEngine {
     summation_regex: Regex,
     summation_generic_regex: Regex,
     summation_phrase_regex: Regex,
+    summation_phrase_implicit_var_regex: Regex,
     product_generic_regex: Regex,
     product_phrase_regex: Regex,
     laplace_regex: Regex,
@@ -60,7 +61,11 @@ impl CoreEngine {
             )
             .expect("valid regex"),
             summation_phrase_regex: Regex::new(
-                r"(?i)\b(?:sum|summation)\s*(?:from\s+)?([A-Za-z])\s*=\s*([A-Za-z0-9∞]+)\s*(?:to|->)\s*([A-Za-z0-9∞]+)\s*(.*)$",
+                r"(?i)\b(?:sum|summation|sumnation)\s*(?:from\s+)?([A-Za-z])\s*=\s*([A-Za-z0-9∞]+)\s*(?:to|->)\s*([A-Za-z0-9∞]+)\s*(.*)$",
+            )
+            .expect("valid regex"),
+            summation_phrase_implicit_var_regex: Regex::new(
+                r"(?i)\b(?:sum|summation|sumnation)\s*(?:from\s+)?([A-Za-z0-9∞]+)\s*(?:to|->)\s*([A-Za-z0-9∞]+)\s*(.*)$",
             )
             .expect("valid regex"),
             product_generic_regex: Regex::new(
@@ -261,6 +266,24 @@ impl CoreEngine {
                 let start = normalize_bound_token(caps[2].trim());
                 let end = normalize_bound_token(caps[3].trim());
                 let tail = strip_optional_of_prefix(caps[4].trim());
+
+                let core = format_sum_core(&var, &start, &end);
+
+                if tail.is_empty() {
+                    core
+                } else {
+                    format!("{} {}", core, normalize_sum_expression(&tail))
+                }
+            })
+            .to_string();
+
+        output = self
+            .summation_phrase_implicit_var_regex
+            .replace_all(&output, |caps: &regex::Captures| {
+                let var = "n".to_string();
+                let start = normalize_bound_token(caps[1].trim());
+                let end = normalize_bound_token(caps[2].trim());
+                let tail = strip_optional_of_prefix(caps[3].trim());
 
                 let core = format_sum_core(&var, &start, &end);
 
@@ -756,6 +779,14 @@ mod tests {
         assert_eq!(
             engine.format("summation from i = 1 to n of i"),
             "∑ᵢ₌₁ⁿ i"
+        );
+        assert_eq!(
+            engine.format("sumnation from i = 1 to n of i"),
+            "∑ᵢ₌₁ⁿ i"
+        );
+        assert_eq!(
+            engine.format("sum from 0 to infinity of 1/x"),
+            "∑ₙ₌₀^∞ 1/x"
         );
     }
 
