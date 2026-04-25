@@ -22,10 +22,29 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release download "${{ github.event.release.tag_name }}" \
-            --repo "${{ github.repository }}" \
-            --pattern "checksums.txt" \
-            --dir .
+          TAG="${{ github.event.release.tag_name }}"
+          REPO="${{ github.repository }}"
+          MAX_ATTEMPTS=30
+          SLEEP_SECONDS=20
+
+          for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
+            echo "Attempt ${attempt}/${MAX_ATTEMPTS}: downloading checksums for ${TAG}..."
+            if gh release download "${TAG}" \
+              --repo "${REPO}" \
+              --pattern "checksums.txt" \
+              --dir .; then
+              echo "Downloaded checksums.txt"
+              break
+            fi
+
+            if [[ "${attempt}" -eq "${MAX_ATTEMPTS}" ]]; then
+              echo "::error::checksums.txt is still unavailable on release ${TAG} after ${MAX_ATTEMPTS} attempts."
+              exit 1
+            fi
+
+            echo "checksums.txt not ready yet; waiting ${SLEEP_SECONDS}s..."
+            sleep "${SLEEP_SECONDS}"
+          done
 
       - name: Parse release version
         id: version
