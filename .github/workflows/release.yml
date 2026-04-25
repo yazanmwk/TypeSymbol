@@ -2,6 +2,8 @@ name: Release Binaries
 
 on:
   push:
+    branches:
+      - "main"
     tags:
       - "v*"
 
@@ -24,8 +26,14 @@ jobs:
 
       - name: Package artifact
         run: |
-          TAG="${GITHUB_REF_NAME}"
-          NAME="typesymbol-${TAG}-x86_64-apple-darwin"
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            RELEASE_TAG="${GITHUB_REF_NAME}"
+          else
+            SAFE_BRANCH=$(echo "${GITHUB_REF_NAME}" | tr '/[:space:]' '-' | tr -cd '[:alnum:]._-' | cut -c1-40)
+            SHORT_SHA=$(echo "${GITHUB_SHA}" | cut -c1-7)
+            RELEASE_TAG="v0.0.0-dev-${SAFE_BRANCH}-${SHORT_SHA}"
+          fi
+          NAME="typesymbol-${RELEASE_TAG}-x86_64-apple-darwin"
           mkdir -p dist
           cp target/release/typesymbol "dist/typesymbol"
           chmod +x "dist/typesymbol"
@@ -52,8 +60,14 @@ jobs:
 
       - name: Package artifact
         run: |
-          TAG="${GITHUB_REF_NAME}"
-          NAME="typesymbol-${TAG}-aarch64-apple-darwin"
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            RELEASE_TAG="${GITHUB_REF_NAME}"
+          else
+            SAFE_BRANCH=$(echo "${GITHUB_REF_NAME}" | tr '/[:space:]' '-' | tr -cd '[:alnum:]._-' | cut -c1-40)
+            SHORT_SHA=$(echo "${GITHUB_SHA}" | cut -c1-7)
+            RELEASE_TAG="v0.0.0-dev-${SAFE_BRANCH}-${SHORT_SHA}"
+          fi
+          NAME="typesymbol-${RELEASE_TAG}-aarch64-apple-darwin"
           mkdir -p dist
           cp target/release/typesymbol "dist/typesymbol"
           chmod +x "dist/typesymbol"
@@ -81,12 +95,22 @@ jobs:
       - name: Package artifact
         shell: pwsh
         run: |
-          $tag = "${env:GITHUB_REF_NAME}"
-          $name = "typesymbol-$tag-x86_64-pc-windows-msvc"
+          if ("${env:GITHUB_REF_TYPE}" -eq "tag") {
+            $releaseTag = "${env:GITHUB_REF_NAME}"
+          }
+          else {
+            $safeBranch = ("${env:GITHUB_REF_NAME}" -replace "[/[:space:]]", "-") -replace "[^A-Za-z0-9._-]", ""
+            if ($safeBranch.Length -gt 40) {
+              $safeBranch = $safeBranch.Substring(0, 40)
+            }
+            $shortSha = "${env:GITHUB_SHA}".Substring(0, 7)
+            $releaseTag = "v0.0.0-dev-$safeBranch-$shortSha"
+          }
+          $name = "typesymbol-$releaseTag-x86_64-pc-windows-msvc"
           New-Item -ItemType Directory -Force -Path dist | Out-Null
           Copy-Item target/release/typesymbol.exe dist/typesymbol.exe -Force
           Compress-Archive -Path dist/typesymbol.exe -DestinationPath "$name.zip" -Force
-          Copy-Item scripts/install-windows-release.ps1 "typesymbol-$tag-install-windows.ps1" -Force
+          Copy-Item scripts/install-windows-release.ps1 "typesymbol-$releaseTag-install-windows.ps1" -Force
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -104,6 +128,28 @@ jobs:
       - build-macos-arm
       - build-windows
     steps:
+      - name: Derive release metadata
+        id: meta
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+        run: |
+          if [ "$REF_TYPE" = "tag" ]; then
+            TAG="$REF_NAME"
+            NAME="$REF_NAME"
+            PRERELEASE=false
+          else
+            SAFE_BRANCH=$(echo "$REF_NAME" | tr '/[:space:]' '-' | tr -cd '[:alnum:]._-' | cut -c1-40)
+            SHORT_SHA=$(echo "$SHA" | cut -c1-7)
+            TAG="v0.0.0-dev-${SAFE_BRANCH}-${SHORT_SHA}"
+            NAME="dev ${SAFE_BRANCH} (${SHORT_SHA})"
+            PRERELEASE=true
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$PRERELEASE" >> "$GITHUB_OUTPUT"
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
@@ -118,6 +164,10 @@ jobs:
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: ${{ steps.meta.outputs.name }}
+          prerelease: ${{ steps.meta.outputs.prerelease }}
+          target_commitish: ${{ github.sha }}
           files: |
             release-assets/typesymbol-*
             release-assets/checksums.txt
