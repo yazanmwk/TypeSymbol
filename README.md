@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/assets/readme-hero.svg" width="100%" alt="TypeSymbol hero banner" />
+<img src="docs/banner.png" width="100%" alt="TypeSymbol hero banner" />
 
 <br/>
 
@@ -133,22 +133,19 @@ typesymbol daemon status
 
 ## Syntax types supported
 
-TypeSymbol can replace shorthand across all of these symbol families:
+TypeSymbol covers the main math shorthand families below.
 
-- Greek aliases (`alpha`, `theta`, `pi`, `inf`)
-- Operators (`->`, `<-`, `<->`, `!=`, `<=`, `>=`, `+-`)
-- Superscripts and subscripts (`x^10`, `x_i`, `a_1`)
-- Square roots (`sqrt(x)`, `sqrt x`)
-- Integrals (strict + phrase forms, including bounds and inferred differential)
-- Summations (`sum_(i=1)^n`, `sum from i=1 to n of ...`)
-- Products (`product from i = 1 to n of ...`)
-- Limits (`limit x to 0 of ...`, `lim (t->inf) ...`)
-- Transform notation (Laplace/Fourier + inverse forms)
-- Partial derivatives (`partial/partial x ...`)
-- Quantifiers and set membership (`for all`, `exists`, `in`, `not in`)
-- Set operators (`subseteq`, `union`, `intersection`)
-- Probability/statistics (`probability of ...`, `expected value of ...`, `variance of ...`)
-- Natural-language power phrase (`x power of 2` -> `x²`)
+| Family | Examples you type | Output style |
+| --- | --- | --- |
+| **Core symbols** | `alpha`, `theta`, `pi`, `inf`, `->`, `<=`, `!=` | `α`, `θ`, `π`, `∞`, `→`, `≤`, `≠` |
+| **Scripts & roots** | `x^10`, `x_i`, `a_1`, `sqrt(x)`, `sqrt x` | `x¹⁰`, `xᵢ`, `a₁`, `√(x)`, `√x` |
+| **Calculus** | `int 0 -> inf x`, `sum_(i=1)^n`, `product from i = 1 to n of i`, `limit x to 0 of ...`, `partial/partial x ...` | `∫₀^∞ ...`, `∑...`, `∏...`, `lim...`, `∂/∂x ...` |
+| **Transforms** | `laplace of f(t)`, `inverse laplace of F(s)`, `fourier transform of x(t)` | `ℒ{...}`, `ℒ⁻¹{...}`, `ℱ{...}` |
+| **Sets & logic** | `for all x in A`, `there exists y not in B`, `subseteq`, `union`, `intersection` | `∀ x ∈ A`, `∃ y ∉ B`, `⊆`, `∪`, `∩` |
+| **Probability & stats** | `probability of A|B`, `expected value of X`, `variance of X` | `P(A\|B)`, `E[X]`, `Var(X)` |
+| **Natural language normalization** | `x power of 2` | `x²` |
+
+<sub>Coverage is rule-based and configurable, so behavior stays predictable.</sub>
 
 Complete syntax examples: [docs/syntax-guide.md](docs/syntax-guide.md)
 
