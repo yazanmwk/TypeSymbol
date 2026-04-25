@@ -97,6 +97,33 @@ function Ensure-GitHubConnectivity {
     }
 }
 
+function Stop-RunningTypeSymbol {
+    param([string]$InstalledExePath)
+
+    # Best-effort graceful shutdown through CLI first.
+    if (Test-Path $InstalledExePath) {
+        try {
+            & $InstalledExePath off | Out-Null
+        }
+        catch {
+            # Ignore and continue to process-level stop below.
+        }
+    }
+
+    # Ensure all running instances release the binary lock.
+    try {
+        $procs = Get-Process -Name "typesymbol" -ErrorAction SilentlyContinue
+        if ($procs) {
+            Write-Log "Stopping running TypeSymbol processes..."
+            $procs | Stop-Process -Force -ErrorAction SilentlyContinue
+            Start-Sleep -Milliseconds 400
+        }
+    }
+    catch {
+        # Do not fail install if process enumeration fails unexpectedly.
+    }
+}
+
 $tag = Resolve-Tag -RequestedVersion $Version
 $assetTag = $tag
 
@@ -130,6 +157,7 @@ try {
     New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
     Expand-Archive -Path $zipPath -DestinationPath $tempDir -Force
     $installedExe = Join-Path $InstallDir "typesymbol.exe"
+    Stop-RunningTypeSymbol -InstalledExePath $installedExe
     Copy-Item (Join-Path $tempDir "typesymbol.exe") $installedExe -Force
 
     Add-ToUserPath -PathToAdd $InstallDir
