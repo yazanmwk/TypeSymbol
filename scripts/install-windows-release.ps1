@@ -72,7 +72,7 @@ function Ensure-VcRuntime {
     Invoke-WebRequest -Uri $vcRedistUrl -OutFile $vcRedistPath
 
     try {
-        $proc = Start-Process -FilePath $vcRedistPath -ArgumentList "/install", "/quiet", "/norestart" -PassThru -Wait
+        $proc = Start-Process -FilePath $vcRedistPath -ArgumentList "/install", "/quiet", "/norestart" -PassThru -Wait -Verb RunAs
         if ($proc.ExitCode -ne 0 -and $proc.ExitCode -ne 3010) {
             throw "VC++ Redistributable installer failed with exit code $($proc.ExitCode)."
         }
@@ -114,12 +114,19 @@ try {
     Write-Log "Installing typesymbol.exe to $InstallDir..."
     New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
     Expand-Archive -Path $zipPath -DestinationPath $tempDir -Force
-    Copy-Item (Join-Path $tempDir "typesymbol.exe") (Join-Path $InstallDir "typesymbol.exe") -Force
+    $installedExe = Join-Path $InstallDir "typesymbol.exe"
+    Copy-Item (Join-Path $tempDir "typesymbol.exe") $installedExe -Force
 
     Add-ToUserPath -PathToAdd $InstallDir
 
+    Write-Log "Starting TypeSymbol daemon..."
+    & $installedExe on | Out-Host
+
     Write-Log "Install complete."
-    Write-Log "Restart PowerShell, then run: typesymbol"
+    Write-Log "Quick checks:"
+    Write-Host "  $installedExe test `"alpha -> beta`""
+    Write-Host "  $installedExe daemon status"
+    Write-Log "Restart PowerShell, then run: typesymbol test `"alpha -> beta`""
 }
 finally {
     if (Test-Path $tempDir) {

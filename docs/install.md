@@ -50,7 +50,8 @@ irm https://raw.githubusercontent.com/yazanmwk/TypeSymbol/main/scripts/install-w
 Then run:
 
 ```powershell
-typesymbol
+typesymbol test "alpha -> beta"
+typesymbol daemon status
 ```
 
 If you see a `VCRUNTIME140.dll` error, install the Microsoft VC++ Redistributable (x64), then rerun:
