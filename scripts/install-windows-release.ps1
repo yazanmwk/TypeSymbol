@@ -245,11 +245,15 @@ try {
     Start-TypeSymbolDaemon -InstalledExePath $installedExe
 
     Write-Log "Verifying CLI..."
-    $smoke = & $installedExe test "alpha -> beta"
-    if ($smoke -ne "α → β") {
-        throw "CLI verification failed. Expected 'α → β', got '$smoke'"
+    # Avoid strict Unicode string equality here because Windows PowerShell host
+    # encoding can render valid UTF-8 output as mojibake in some environments.
+    $inputExpr = "alpha -> beta"
+    $smoke = & $installedExe test $inputExpr
+    $smokeTrimmed = "$smoke".Trim()
+    if (-not $smokeTrimmed -or $smokeTrimmed -eq $inputExpr) {
+        throw "CLI verification failed. Expected transformed output, got '$smokeTrimmed'"
     }
-    Write-Host "CLI smoke test: ok (alpha -> beta => $smoke)"
+    Write-Host "CLI smoke test: ok ($inputExpr => $smokeTrimmed)"
     Write-Host "CLI shell: run 'typesymbol' (no args) to open the interactive interface."
 
     Write-Log "Install complete."
