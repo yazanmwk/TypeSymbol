@@ -2,6 +2,12 @@
 
 Thanks for your interest in TypeSymbol. This repository is developed in the open; issues and pull requests are welcome.
 
+## Contribution boundaries
+
+- Community contributions are for features, bug fixes, docs, and tests via pull requests.
+- Release publishing is maintainer-only: contributors do not cut releases or publish artifacts.
+- Version tags (`v*`) are the release gate and are pushed by maintainers in the canonical repository.
+
 ## Build from source
 
 You need a recent **stable Rust** toolchain (see [rustup.rs](https://rustup.rs/)).

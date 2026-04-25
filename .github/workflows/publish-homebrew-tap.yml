@@ -10,6 +10,7 @@ permissions:
 jobs:
   update-homebrew-tap:
     runs-on: ubuntu-latest
+    if: github.repository == 'yazanmwk/TypeSymbol' && github.event.release.prerelease == false
     env:
       # Forks: set a repo secret or change this to "yourname/homebrew-tap"
       TAP_REPO: ${{ github.repository_owner }}/homebrew-tap

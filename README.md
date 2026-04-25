@@ -24,6 +24,14 @@
 
 <br/>
 
+[![Rust](https://img.shields.io/badge/Rust-Core-000000?style=for-the-badge&logo=rust&logoColor=white&labelColor=18181b)](https://www.rust-lang.org/)
+[![macOS](https://img.shields.io/badge/macOS-Supported-111827?style=for-the-badge&logo=apple&logoColor=white&labelColor=18181b)](docs/install.md)
+[![Windows](https://img.shields.io/badge/Windows-Supported-0078D4?style=for-the-badge&logo=windows&logoColor=white&labelColor=18181b)](docs/install.md)
+[![CLI + TUI](https://img.shields.io/badge/CLI%20%2B%20TUI-Interface-6D28D9?style=for-the-badge&logo=gnubash&logoColor=white&labelColor=18181b)](docs/install.md)
+[![License](https://img.shields.io/badge/License-MIT-16a34a?style=for-the-badge&logo=opensourceinitiative&logoColor=white&labelColor=18181b)](LICENSE)
+
+<br/>
+
 <sub>Rust core · global daemon · macOS & Windows · CLI + TUI: ∫ prompt, <code>╭╮╰╯</code> panels, violet borders, gradient header</sub>
 
 </div>
@@ -40,6 +48,16 @@
 | `sum_(i=1)^n i^2` | **∑ᵢ₌₁ⁿ i²** |
 
 *Transforms follow your [config](docs/install.md) (Greek, operators, integrals, sums, products, limits, transforms, set logic, probability/statistics, scripts, and more). Use `typesymbol test "..."` to preview any string.*
+
+---
+
+## What this is
+
+TypeSymbol is a local, system-wide typing engine for math notation.
+
+Instead of switching tools or opening symbol pickers, you keep typing in plain text and TypeSymbol expands it into Unicode math where you already work: notes, chats, docs, editors, and browsers.
+
+It is built for one goal: reduce friction between thinking in math and writing in software.
 
 ---
 
@@ -165,6 +183,19 @@ typesymbol config show
 typesymbol daemon status
 ```
 
+### Fast path (new users)
+
+```bash
+# 1) Install
+brew install yazanmwk/homebrew-tap/typesymbol
+
+# 2) Initialize config
+typesymbol config init
+
+# 3) Verify behavior
+typesymbol test "for all x in A"
+```
+
 ---
 
 ## Syntax types supported
@@ -187,6 +218,27 @@ TypeSymbol can replace shorthand across all of these symbol families:
 - Natural-language power phrase (`x power of 2` -> `x²`)
 
 Complete syntax examples: [docs/syntax-guide.md](docs/syntax-guide.md)
+
+---
+
+## Feature snapshot
+
+| Capability | Why it matters |
+| --- | --- |
+| **System-wide daemon** | Works in your focused app, not only one editor plugin |
+| **Rule-driven syntax engine** | Easy to reason about, test, and customize |
+| **Math pack coverage** | Handles calculus, transforms, sets, logic, and stats shorthand |
+| **Config-first behavior** | Toggle symbol families and tune replacements safely |
+| **CLI + TUI controls** | Inspect, test, and manage state quickly from terminal |
+
+---
+
+## Safety and control
+
+- TypeSymbol runs locally on your machine.
+- You control when replacement is active (`typesymbol on` / `typesymbol off`).
+- Excluded apps are configurable to avoid accidental transforms in sensitive contexts.
+- Suggestions/replacements are deterministic rule transforms, not opaque generation.
 
 ---
 
@@ -238,6 +290,17 @@ Index of all guides: **[docs/README.md](docs/README.md)**.
 ## Security
 
 Do not post suspected vulnerabilities in public issues first. See **[docs/SECURITY.md](docs/SECURITY.md)** for how to report them responsibly.
+
+---
+
+## Let's Connect
+
+[![GitHub](https://img.shields.io/badge/GitHub-TypeSymbol-18181b?style=for-the-badge&logo=github&logoColor=white)](https://github.com/yazanmwk/TypeSymbol)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Yazan%20K-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/yazanmwk/)
+[![Email](https://img.shields.io/badge/Email-Contact-ea4335?style=for-the-badge&logo=gmail&logoColor=white)](mailto:yazan.mw.k@gmail.com)
+[![Releases](https://img.shields.io/badge/Releases-Latest-2563eb?style=for-the-badge&logo=github&logoColor=white)](https://github.com/yazanmwk/TypeSymbol/releases)
+[![Issues](https://img.shields.io/badge/Issues-Track%20Bugs-ef4444?style=for-the-badge&logo=githubissues&logoColor=white)](https://github.com/yazanmwk/TypeSymbol/issues)
+[![Security](https://img.shields.io/badge/Security-Report-a855f7?style=for-the-badge&logo=shield&logoColor=white)](docs/SECURITY.md)
 
 ---
 

@@ -2,8 +2,6 @@ name: Release Binaries
 
 on:
   push:
-    branches:
-      - "main"
     tags:
       - "v*"
 
@@ -123,6 +121,7 @@ jobs:
   publish-release:
     name: Publish GitHub Release
     runs-on: ubuntu-latest
+    if: github.repository == 'yazanmwk/TypeSymbol' && github.ref_type == 'tag'
     needs:
       - build-macos-intel
       - build-macos-arm
@@ -131,21 +130,11 @@ jobs:
       - name: Derive release metadata
         id: meta
         env:
-          REF_TYPE: ${{ github.ref_type }}
           REF_NAME: ${{ github.ref_name }}
-          SHA: ${{ github.sha }}
         run: |
-          if [ "$REF_TYPE" = "tag" ]; then
-            TAG="$REF_NAME"
-            NAME="$REF_NAME"
-            PRERELEASE=false
-          else
-            SAFE_BRANCH=$(echo "$REF_NAME" | tr '/[:space:]' '-' | tr -cd '[:alnum:]._-' | cut -c1-40)
-            SHORT_SHA=$(echo "$SHA" | cut -c1-7)
-            TAG="v0.0.0-dev-${SAFE_BRANCH}-${SHORT_SHA}"
-            NAME="dev ${SAFE_BRANCH} (${SHORT_SHA})"
-            PRERELEASE=true
-          fi
+          TAG="$REF_NAME"
+          NAME="$REF_NAME"
+          PRERELEASE=false
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "name=$NAME" >> "$GITHUB_OUTPUT"
           echo "prerelease=$PRERELEASE" >> "$GITHUB_OUTPUT"

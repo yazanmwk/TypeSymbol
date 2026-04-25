@@ -5,7 +5,7 @@ This is fully automated once set up.
 ## What I set up
 
 - GitHub Action: `.github/workflows/release.yml`
-- Trigger: push a tag like `v0.1.0`
+- Trigger: push a tag like `v0.1.0` (no release on regular branch pushes)
 - Outputs:
   - `typesymbol-vX.Y.Z-x86_64-apple-darwin.tar.gz`
   - `typesymbol-vX.Y.Z-aarch64-apple-darwin.tar.gz`
@@ -13,6 +13,13 @@ This is fully automated once set up.
   - `typesymbol-vX.Y.Z-install-windows.ps1`
   - `checksums.txt`
 - Publishes all artifacts to a GitHub Release automatically.
+
+## Release safety model
+
+- External contributors can open issues and PRs, but they cannot publish releases.
+- Release publishing is locked to version tags (`v*`) in the canonical repo (`yazanmwk/TypeSymbol`).
+- Homebrew tap automation only runs for non-prerelease releases from the canonical repo.
+- In practice, only maintainers with tag push rights can cut a release.
 
 ## How you cut a release
 
