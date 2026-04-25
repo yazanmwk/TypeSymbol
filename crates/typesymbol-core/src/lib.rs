@@ -11,7 +11,9 @@ pub struct CoreEngine {
     integral_verbose_regex: Regex,
     integral_phrase_regex: Regex,
     summation_regex: Regex,
+    summation_generic_regex: Regex,
     summation_phrase_regex: Regex,
+    product_generic_regex: Regex,
     product_phrase_regex: Regex,
     laplace_regex: Regex,
     inv_laplace_regex: Regex,
@@ -53,17 +55,25 @@ impl CoreEngine {
             )
             .expect("valid regex"),
             summation_regex: Regex::new(r"\bsum_\(i=1\)\^n\b").expect("valid regex"),
+            summation_generic_regex: Regex::new(
+                r"(?i)\bsum_\(\s*([A-Za-z])\s*=\s*([A-Za-z0-9∞]+)\s*\)\s*\^\s*([A-Za-z0-9∞]+)(\s|$)",
+            )
+            .expect("valid regex"),
             summation_phrase_regex: Regex::new(
-                r"(?i)\b(?:sum|summation)\s+from\s+([A-Za-z])\s*=\s*([A-Za-z0-9∞]+)\s*(?:to|->)\s*([A-Za-z0-9∞]+)\s*(.*)$",
+                r"(?i)\b(?:sum|summation)\s*(?:from\s+)?([A-Za-z])\s*=\s*([A-Za-z0-9∞]+)\s*(?:to|->)\s*([A-Za-z0-9∞]+)\s*(.*)$",
+            )
+            .expect("valid regex"),
+            product_generic_regex: Regex::new(
+                r"(?i)\b(?:prod|product)_\(\s*([A-Za-z])\s*=\s*([A-Za-z0-9∞]+)\s*\)\s*\^\s*([A-Za-z0-9∞]+)(\s|$)",
             )
             .expect("valid regex"),
             product_phrase_regex: Regex::new(
-                r"(?i)\b(?:product|prod)\s+from\s+([A-Za-z])\s*=\s*([A-Za-z0-9∞]+)\s*(?:to|->)\s*([A-Za-z0-9∞]+)\s*(.*)$",
+                r"(?i)\b(?:product|prod)\s*(?:from\s+)?([A-Za-z])\s*=\s*([A-Za-z0-9∞]+)\s*(?:to|->)\s*([A-Za-z0-9∞]+)\s*(.*)$",
             )
             .expect("valid regex"),
-            laplace_regex: Regex::new(r"(?i)\blaplace(?:\s+transform)?\s+of\s+(.+)$").expect("valid regex"),
+            laplace_regex: Regex::new(r"(?i)\blaplace(?:\s+transform)?\s+(?:of\s+)?(.+)$").expect("valid regex"),
             inv_laplace_regex: Regex::new(
-                r"(?i)\b(?:inverse\s+laplace|inv\s+laplace)(?:\s+transform)?\s+of\s+(.+)$",
+                r"(?i)\b(?:inverse\s+laplace|inv\s+laplace)(?:\s+transform)?\s+(?:of\s+)?(.+)$",
             )
             .expect("valid regex"),
             fourier_regex: Regex::new(r"(?i)\bfourier(?:\s+transform)?\s+of\s+(.+)$").expect("valid regex"),
@@ -234,6 +244,15 @@ impl CoreEngine {
             .summation_regex
             .replace_all(input, "∑ᵢ₌₁ⁿ")
             .to_string();
+        output = self
+            .summation_generic_regex
+            .replace_all(&output, |caps: &regex::Captures| {
+                let var = caps[1].to_lowercase();
+                let start = normalize_bound_token(caps[2].trim());
+                let end = normalize_bound_token(caps[3].trim());
+                format!("{}{}", format_sum_core(&var, &start, &end), &caps[4])
+            })
+            .to_string();
 
         output = self
             .summation_phrase_regex
@@ -243,18 +262,7 @@ impl CoreEngine {
                 let end = normalize_bound_token(caps[3].trim());
                 let tail = strip_optional_of_prefix(caps[4].trim());
 
-                let var_sub = if can_render_subscript(&var) {
-                    to_sub(&var)
-                } else {
-                    format!("_{{{}}}", var)
-                };
-                let start_sub = if can_render_subscript(&start) {
-                    to_sub(&start)
-                } else {
-                    format!("_{{{}}}", start)
-                };
-                let end_sup = format_upper_bound(&end);
-                let core = format!("∑{}₌{}{}", var_sub, start_sub, end_sup);
+                let core = format_sum_core(&var, &start, &end);
 
                 if tail.is_empty() {
                     core
@@ -321,6 +329,15 @@ impl CoreEngine {
             .to_string();
 
         output = self
+            .product_generic_regex
+            .replace_all(&output, |caps: &regex::Captures| {
+                let var = caps[1].to_lowercase();
+                let start = normalize_bound_token(caps[2].trim());
+                let end = normalize_bound_token(caps[3].trim());
+                format!("{}{}", format_product_core(&var, &start, &end), &caps[4])
+            })
+            .to_string();
+        output = self
             .product_phrase_regex
             .replace_all(&output, |caps: &regex::Captures| {
                 let var = caps[1].to_lowercase();
@@ -328,18 +345,7 @@ impl CoreEngine {
                 let end = normalize_bound_token(caps[3].trim());
                 let tail = strip_optional_of_prefix(caps[4].trim());
 
-                let var_sub = if can_render_subscript(&var) {
-                    to_sub(&var)
-                } else {
-                    format!("_{{{}}}", var)
-                };
-                let start_sub = if can_render_subscript(&start) {
-                    to_sub(&start)
-                } else {
-                    format!("_{{{}}}", start)
-                };
-                let end_sup = format_upper_bound(&end);
-                let core = format!("∏{}₌{}{}", var_sub, start_sub, end_sup);
+                let core = format_product_core(&var, &start, &end);
 
                 if tail.is_empty() {
                     core
@@ -438,6 +444,36 @@ fn format_limit_variable(raw: &str) -> String {
     } else {
         format!("_{{{}}}", lowered)
     }
+}
+
+fn format_sum_core(var: &str, start: &str, end: &str) -> String {
+    let var_sub = if can_render_subscript(var) {
+        to_sub(var)
+    } else {
+        format!("_{{{}}}", var)
+    };
+    let start_sub = if can_render_subscript(start) {
+        to_sub(start)
+    } else {
+        format!("_{{{}}}", start)
+    };
+    let end_sup = format_upper_bound(end);
+    format!("∑{}₌{}{}", var_sub, start_sub, end_sup)
+}
+
+fn format_product_core(var: &str, start: &str, end: &str) -> String {
+    let var_sub = if can_render_subscript(var) {
+        to_sub(var)
+    } else {
+        format!("_{{{}}}", var)
+    };
+    let start_sub = if can_render_subscript(start) {
+        to_sub(start)
+    } else {
+        format!("_{{{}}}", start)
+    };
+    let end_sup = format_upper_bound(end);
+    format!("∏{}₌{}{}", var_sub, start_sub, end_sup)
 }
 
 fn format_lower_bound(raw: &str) -> String {
@@ -710,7 +746,9 @@ mod tests {
     fn converts_sum_and_scripts() {
         let engine = CoreEngine::new(test_config());
         assert_eq!(engine.format("sum_(i=1)^n i^2"), "∑ᵢ₌₁ⁿ i²");
+        assert_eq!(engine.format("sum_(k=0)^inf k"), "∑_{k}₌₀^∞ k");
         assert_eq!(engine.format("sum from n = 0 to ∞"), "∑ₙ₌₀^∞");
+        assert_eq!(engine.format("sum n=0 to inf n^2"), "∑ₙ₌₀^∞ n²");
         assert_eq!(
             engine.format("sum from n=0 to inf of n^2"),
             "∑ₙ₌₀^∞ n²"
@@ -738,7 +776,9 @@ mod tests {
     fn converts_math_pack_notations() {
         let engine = CoreEngine::new(test_config());
         assert_eq!(engine.format("laplace of f(t)"), "ℒ{f(t)}");
+        assert_eq!(engine.format("laplace f(t)"), "ℒ{f(t)}");
         assert_eq!(engine.format("inverse laplace of F(s)"), "ℒ⁻¹{F(s)}");
+        assert_eq!(engine.format("inv laplace F(s)"), "ℒ⁻¹{F(s)}");
         assert_eq!(engine.format("fourier transform of f(t)"), "ℱ{f(t)}");
         assert_eq!(engine.format("inv fourier of X(w)"), "ℱ⁻¹{X(w)}");
         assert_eq!(
@@ -757,6 +797,8 @@ mod tests {
             engine.format("product from i = 1 to n of i"),
             "∏ᵢ₌₁ⁿ i"
         );
+        assert_eq!(engine.format("prod_(i=1)^n i"), "∏ᵢ₌₁ⁿ i");
+        assert_eq!(engine.format("product i=1 to n i"), "∏ᵢ₌₁ⁿ i");
         assert_eq!(
             engine.format("for all x in A"),
             "∀ x ∈ A"
