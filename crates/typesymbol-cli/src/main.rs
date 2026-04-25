@@ -554,7 +554,7 @@ fn trigger_key_from_code(code: KeyCode) -> Option<String> {
 fn build_tui_header_lines(width: u16, line_budget: u16, color_enabled: bool) -> Vec<Line<'static>> {
     // Keep room for dashboard controls first, then spend remaining lines on branding.
     // This keeps the full logo visible whenever possible without clipping menu content.
-    if width >= 110 && line_budget >= 13 {
+    if width >= 110 {
         let type_rows = [
             "████████╗██╗   ██╗██████╗ ███████╗",
             "╚══██╔══╝╚██╗ ██╔╝██╔══██╗██╔════╝",
@@ -611,10 +611,12 @@ fn build_tui_header_lines(width: u16, line_budget: u16, color_enabled: bool) -> 
             ),
         ];
         lines.push(Line::from(tagline).alignment(Alignment::Center));
-        return lines;
+        if (lines.len() as u16) <= line_budget {
+            return lines;
+        }
     }
 
-    if width >= 78 && line_budget >= 8 {
+    if width >= 78 {
         let type_rows = [
             "████████╗██╗   ██╗██████╗ ███████╗",
             "╚══██╔══╝╚██╗ ██╔╝██╔══██╗██╔════╝",
@@ -667,7 +669,9 @@ fn build_tui_header_lines(width: u16, line_budget: u16, color_enabled: bool) -> 
             ))
             .alignment(Alignment::Center),
         );
-        return lines;
+        if (lines.len() as u16) <= line_budget {
+            return lines;
+        }
     }
 
     vec![
@@ -2943,5 +2947,17 @@ mod tui_tests {
             }
             assert_eq!(visible_width(line), expected);
         }
+    }
+
+    #[test]
+    fn header_never_exceeds_available_line_budget() {
+        let lines = build_tui_header_lines(120, 14, false);
+        assert!(lines.len() <= 14);
+    }
+
+    #[test]
+    fn full_header_is_used_when_budget_allows_it() {
+        let lines = build_tui_header_lines(120, 15, false);
+        assert_eq!(lines.len(), 15);
     }
 }
