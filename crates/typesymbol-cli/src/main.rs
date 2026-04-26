@@ -2549,7 +2549,25 @@ fn disable_autostart_silent() -> Result<(), String> {
 }
 
 fn current_uid() -> String {
-    std::env::var("UID").unwrap_or_else(|_| "501".to_string())
+    if let Ok(uid) = std::env::var("UID") {
+        let trimmed = uid.trim();
+        if !trimmed.is_empty() && trimmed.chars().all(|c| c.is_ascii_digit()) {
+            return trimmed.to_string();
+        }
+    }
+
+    if let Ok(output) = Command::new("id").arg("-u").output() {
+        if output.status.success() {
+            if let Ok(uid) = String::from_utf8(output.stdout) {
+                let trimmed = uid.trim();
+                if !trimmed.is_empty() && trimmed.chars().all(|c| c.is_ascii_digit()) {
+                    return trimmed.to_string();
+                }
+            }
+        }
+    }
+
+    "501".to_string()
 }
 
 fn xml_escape(s: &str) -> String {
