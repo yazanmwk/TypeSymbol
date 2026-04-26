@@ -45,8 +45,7 @@ cargo test
 ### Platform targets
 
 - **macOS:** build on macOS to compile `typesymbol-platform-macos` and the full CLI.
-- **Windows:** build on Windows to compile `typesymbol-platform-windows` and the full CLI.
-- On Linux, `cargo test` still exercises the core and other crates; the full daemon + CLI binary may require a macOS or Windows target for linking platform crates.
+- On Linux, `cargo test` still exercises the core and other crates, but release artifacts are macOS-only.
 
 ## Packaging scripts and forks
 

@@ -5,8 +5,7 @@ members = [
     "crates/typesymbol-config",
     "crates/typesymbol-cli",
     "crates/typesymbol-daemon",
-    "crates/typesymbol-platform-macos",
-    "crates/typesymbol-platform-windows"
+    "crates/typesymbol-platform-macos"
 ]
 
 [workspace.package]

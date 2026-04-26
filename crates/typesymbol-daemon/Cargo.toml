@@ -11,6 +11,3 @@ typesymbol-config = { path = "../typesymbol-config" }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 typesymbol-platform-macos = { path = "../typesymbol-platform-macos" }
-
-[target.'cfg(target_os = "windows")'.dependencies]
-typesymbol-platform-windows = { path = "../typesymbol-platform-windows" }

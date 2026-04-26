@@ -8,10 +8,6 @@ use std::process::Command;
 use typesymbol_platform_macos::{
     force_release_input_guard, inject_replacement, MacOSAdapter as PlatformAdapter, PlatformEvent,
 };
-#[cfg(target_os = "windows")]
-use typesymbol_platform_windows::{
-    inject_replacement, PlatformEvent, WindowsAdapter as PlatformAdapter,
-};
 
 pub fn run(config: TypeSymbolConfig) {
     #[cfg(target_os = "macos")]
@@ -66,25 +62,6 @@ fn install_panic_release_hook() {
 }
 
 fn is_virtual_machine() -> bool {
-    #[cfg(target_os = "windows")]
-    {
-        return command_output_contains_any(
-            "cmd",
-            &["/C", "wmic computersystem get model,manufacturer"],
-            &[
-                "virtualbox",
-                "vmware",
-                "kvm",
-                "qemu",
-                "xen",
-                "hyper-v",
-                "virtual machine",
-                "bochs",
-                "parallels",
-            ],
-        );
-    }
-
     #[cfg(target_os = "macos")]
     {
         return command_output_contains_any(

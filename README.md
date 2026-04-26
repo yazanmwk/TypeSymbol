@@ -14,14 +14,13 @@
 <br/>
 
 [![macOS](https://img.shields.io/badge/macOS-Supported-111827?style=for-the-badge&logo=apple&logoColor=white)](docs/install.md)
-[![Windows](https://img.shields.io/badge/Windows-Supported-0078D4?style=for-the-badge&logo=windows&logoColor=white)](docs/install.md)
 [![Syntax Guide](https://img.shields.io/badge/Syntax-Guide-7C3AED?style=for-the-badge&logo=bookstack&logoColor=white)](docs/syntax-guide.md)
 [![Contributing](https://img.shields.io/badge/Contributing-PRs%20Welcome-2563EB?style=for-the-badge&logo=github&logoColor=white)](docs/CONTRIBUTING.md)
 [![Security](https://img.shields.io/badge/Security-Policy-A855F7?style=for-the-badge&logo=shield&logoColor=white)](docs/SECURITY.md)
 
 <br/>
 
-<sub>System-wide math shorthand for macOS and Windows, with explicit controls for testing, toggling, and safe app-by-app behavior.</sub>
+<sub>System-wide math shorthand for macOS, with explicit controls for testing, toggling, and safe app-by-app behavior.</sub>
 
 </div>
 
@@ -104,9 +103,9 @@ flowchart TB
     C5 --> R5
 ```
 
-1. A **cross-platform Rust engine** parses and expands your math shorthand.  
+1. A **Rust engine** parses and expands your math shorthand.  
 2. A **background daemon** watches input so replacement can happen globally (not just inside one app).  
-3. **macOS and Windows** each have a native adapter for capture and injection.
+3. A **native macOS adapter** handles input capture and text injection.
 
 ### Control surface (why the controls exist)
 
@@ -129,14 +128,6 @@ flowchart TB
 ```bash
 # macOS (Homebrew)
 brew install yazanmwk/homebrew-tap/typesymbol
-```
-
-```powershell
-# Windows (MSI installer from GitHub Releases)
-$release = "https://github.com/yazanmwk/TypeSymbol/releases/latest"
-Start-Process $release
-# Download: typesymbol-vX.Y.Z-x86_64-pc-windows-msvc.msi
-# Run the installer, then open a new PowerShell window.
 ```
 
 Verify:
@@ -195,7 +186,7 @@ Complete syntax examples: [docs/syntax-guide.md](docs/syntax-guide.md)
 ## Why TypeSymbol
 
 - **Keep flow state:** type plain shorthand and get math symbols without leaving your current app.
-- **Work everywhere:** applies system-wide on macOS and Windows, not only inside one editor.
+- **Work everywhere on macOS:** applies system-wide, not only inside one editor.
 - **Stay in control:** explicit triggers, quick on/off, test mode, and per-app exclusions.
 - **Trust the output:** deterministic rule-based transforms with config you can inspect and edit.
 
@@ -212,7 +203,6 @@ TypeSymbol/
 │   ├── typesymbol-config/            # Config model + defaults
 │   ├── typesymbol-daemon/            # Runtime + input event pipeline
 │   ├── typesymbol-platform-macos/    # Native macOS adapter
-│   ├── typesymbol-platform-windows/  # Native Windows adapter
 │   └── typesymbol-cli/               # CLI + TUI entrypoint
 └── docs/                             # Install, syntax, contributing, security
 ```

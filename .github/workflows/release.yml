@@ -77,49 +77,6 @@ jobs:
           name: typesymbol-aarch64-apple-darwin
           path: typesymbol-*.tar.gz
 
-  build-windows:
-    name: Build Windows
-    runs-on: windows-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Build release binary
-        run: cargo build --release -p typesymbol-cli
-
-      - name: Install WiX Toolset
-        shell: pwsh
-        run: dotnet tool install --global wix --version 5.*
-
-      - name: Package artifact
-        shell: pwsh
-        run: |
-          if ("${env:GITHUB_REF_TYPE}" -eq "tag") {
-            $releaseTag = "${env:GITHUB_REF_NAME}"
-          }
-          else {
-            $safeBranch = ("${env:GITHUB_REF_NAME}" -replace "[/[:space:]]", "-") -replace "[^A-Za-z0-9._-]", ""
-            if ($safeBranch.Length -gt 40) {
-              $safeBranch = $safeBranch.Substring(0, 40)
-            }
-            $shortSha = "${env:GITHUB_SHA}".Substring(0, 7)
-            $releaseTag = "v0.0.0-dev-$safeBranch-$shortSha"
-          }
-          $version = $releaseTag.TrimStart("v")
-          $name = "typesymbol-$releaseTag-x86_64-pc-windows-msvc"
-          New-Item -ItemType Directory -Force -Path dist | Out-Null
-          Copy-Item target/release/typesymbol.exe dist/typesymbol.exe -Force
-          scripts/build-windows-msi.ps1 -Version $version -BinaryPath "dist/typesymbol.exe" -OutputPath "$name.msi"
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: typesymbol-x86_64-pc-windows-msvc
-          path: typesymbol-*.msi
-
   publish-release:
     name: Publish GitHub Release
     runs-on: ubuntu-latest
@@ -127,7 +84,6 @@ jobs:
     needs:
       - build-macos-intel
       - build-macos-arm
-      - build-windows
     steps:
       - name: Derive release metadata
         id: meta

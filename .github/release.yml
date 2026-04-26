@@ -25,25 +25,6 @@ changelog:
 template: |
   ## Install
 
-  ### Windows installer (official)
-
-  ```powershell
-  # Download and run:
-  # typesymbol-vX.Y.Z-x86_64-pc-windows-msvc.msi
-  ```
-
-  After install, TypeSymbol CLI opens with:
-  ```powershell
-  typesymbol
-  ```
-  Common in-shell commands: `on`, `off`, `daemon status`, `config show`, `help`, `exit`.
-
-  Direct assets are attached to this release:
-  - `typesymbol-vX.Y.Z-x86_64-pc-windows-msvc.msi`
-  - `checksums.txt`
-
-  Verify downloaded files with `checksums.txt` before manual installation.
-
   ### macOS (Homebrew)
 
   ```bash

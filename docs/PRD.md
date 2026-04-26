@@ -38,7 +38,7 @@ This is a **system-wide math shorthand input engine** that outputs portable text
 2. Detect shorthand patterns system-wide.
 3. Offer conversion into math-symbol output that is portable across apps.
 4. Be configurable entirely through a CLI and config file.
-5. Be architected in a cross-platform way so Windows support can be added later with minimal rewrite of core logic.
+5. Keep core logic modular and maintainable for long-term evolution.
 
 ### Secondary goals
 1. Feel similar to spellcheck/autocorrect in interaction quality.
@@ -116,8 +116,8 @@ The product is configured through:
 3. **CLI-first configuration**  
    Advanced users must be able to configure rules, triggers, and behavior from terminal/config.
 
-4. **Cross-platform architecture**  
-   Core logic must be reusable on macOS and Windows.
+4. **Modular architecture**  
+   Core logic must remain reusable across internal components.
 
 5. **Safe interaction model**  
    Suggestions should be non-destructive and user-controlled.
@@ -302,7 +302,7 @@ The app must:
 The codebase must be designed so that:
 - core parsing/logic is platform-agnostic
 - OS-specific integrations are thin adapters
-- macOS and Windows platform logic are isolated from the core
+- platform-specific logic is isolated from the core
 
 ### 12.2 Recommended architecture
 Use:
@@ -315,7 +315,7 @@ Use:
   - text replacement
   - suggestion window integration
 
-Avoid a Swift-heavy architecture because Windows support must remain feasible later.
+Avoid a Swift-heavy architecture so the core remains portable and testable.
 
 ### 12.3 Layered architecture
 The codebase should be divided into:
@@ -364,7 +364,6 @@ typesymbol/
     config/
     platform/
     platform-macos/
-    platform-windows/
 ```
 
 Alternative acceptable structure:
@@ -374,7 +373,6 @@ typesymbol-core
 typesymbol-cli
 typesymbol-daemon
 typesymbol-platform-macos
-typesymbol-platform-windows
 ```
 
 ## 14. CLI Requirements
@@ -449,19 +447,11 @@ infinity = "∞"
 ### v1 target platform
 - macOS only
 
-### v2 target platform
-- Windows
-
 ### v1 macOS requirements
 - background daemon process
 - permission handling for accessibility/input monitoring as needed
 - reliable replacement in common text fields
 - graceful degradation in unsupported contexts
-
-### v2 Windows requirements
-- reuse core/CLI/config/parser logic
-- implement new platform adapter only
-- preserve same config format and syntax behavior
 
 ## 17. MVP Scope
 
@@ -487,7 +477,6 @@ The MVP should include:
 - undo-aware replacement
 
 ### Excluded from MVP
-- Windows support
 - settings GUI
 - deep native spellcheck-style underline
 - full advanced equation parser
@@ -529,7 +518,7 @@ The product is successful for MVP if:
 3. User can type supported shorthand into common text fields and convert it with a trigger key.
 4. Conversion works reliably for the supported v1 syntax categories.
 5. Core parsing/formatting logic is clearly separated from platform-specific code.
-6. Codebase is structured so Windows platform support can be added later without rewriting parser/config/CLI/core logic.
+6. Codebase is structured so future expansion can happen without rewriting parser/config/CLI/core logic.
 
 ## 20. Engineering Constraints
 
@@ -578,9 +567,6 @@ These should be resolved during design/engineering:
 - app exclusions
 - performance polish
 
-### Phase 5
-- Windows adapter
-
 ## 23. Summary
 
-TypeSymbol is a system-wide, CLI-configured math shorthand input engine that allows users to type plain-text expressions anywhere and convert them into portable Unicode math notation. The MVP should focus on macOS, hotkey-triggered replacement, and a Rust-first cross-platform architecture that keeps Windows support practical later.
+TypeSymbol is a system-wide, CLI-configured math shorthand input engine that allows users to type plain-text expressions anywhere and convert them into portable Unicode math notation. The MVP should focus on macOS, hotkey-triggered replacement, and a Rust-first modular architecture.

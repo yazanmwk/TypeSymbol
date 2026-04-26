@@ -9,7 +9,6 @@ This is fully automated once set up.
 - Outputs:
   - `typesymbol-vX.Y.Z-x86_64-apple-darwin.tar.gz`
   - `typesymbol-vX.Y.Z-aarch64-apple-darwin.tar.gz`
-  - `typesymbol-vX.Y.Z-x86_64-pc-windows-msvc.msi`
   - `checksums.txt`
 - Publishes all artifacts to a GitHub Release automatically.
 

@@ -225,9 +225,7 @@ fn main() {
         Some(Commands::App) => run_app_mode(config),
         Some(Commands::Update { check }) => run_self_update(*check),
         None => {
-            if cfg!(windows) {
-                run_settings_shell(resolve_config(&cli), cli.config.clone());
-            } else if io::stdin().is_terminal() && io::stdout().is_terminal() {
+            if io::stdin().is_terminal() && io::stdout().is_terminal() {
                 if let Err(err) = run_interactive_tui(resolve_config(&cli), cli.config.clone()) {
                     eprintln!("Interactive shell failed: {}", err);
                     process::exit(1);
@@ -1977,13 +1975,7 @@ fn colorize_non_space_runs(text: &str, code: &str) -> String {
 }
 
 fn default_config_path() -> PathBuf {
-    if cfg!(windows) {
-        if let Ok(appdata) = std::env::var("APPDATA") {
-            return PathBuf::from(appdata)
-                .join("TypeSymbol")
-                .join("config.toml");
-        }
-    } else if let Ok(home) = std::env::var("HOME") {
+    if let Ok(home) = std::env::var("HOME") {
         return PathBuf::from(home)
             .join(".config")
             .join("typesymbol")
@@ -1997,19 +1989,12 @@ fn default_config_path() -> PathBuf {
 
 fn render_default_config() -> String {
     let cfg = TypeSymbolConfig::default();
-    let excluded_apps_block = if cfg!(windows) {
-        r#"excluded_apps = [
-  "WindowsTerminal.exe",
-  "Code.exe",
-  "rustrover64.exe",
-]"#
-    } else {
-        r#"excluded_apps = [
+    let excluded_apps_block = r#"excluded_apps = [
   "com.apple.Terminal",
   "com.microsoft.VSCode",
   "com.jetbrains.rustrover",
 ]"#
-    };
+    ;
     format!(
         r#"mode = "{mode}"
 trigger_mode = "{trigger_mode}"
@@ -2096,13 +2081,7 @@ fn daemon_log_path() -> PathBuf {
 }
 
 fn state_dir() -> PathBuf {
-    let preferred = if cfg!(windows) {
-        if let Ok(local_app_data) = std::env::var("LOCALAPPDATA") {
-            PathBuf::from(local_app_data).join("TypeSymbol").join("state")
-        } else {
-            PathBuf::from(".").join(".typesymbol-state")
-        }
-    } else if let Ok(home) = std::env::var("HOME") {
+    let preferred = if let Ok(home) = std::env::var("HOME") {
         PathBuf::from(home)
             .join(".local")
             .join("state")
@@ -2113,11 +2092,7 @@ fn state_dir() -> PathBuf {
     if fs::create_dir_all(&preferred).is_ok() {
         preferred
     } else {
-        let fallback = if cfg!(windows) {
-            PathBuf::from(".").join(".typesymbol-state")
-        } else {
-            PathBuf::from("/tmp").join("typesymbol-state")
-        };
+        let fallback = PathBuf::from("/tmp").join("typesymbol-state");
         let _ = fs::create_dir_all(&fallback);
         fallback
     }
@@ -2164,22 +2139,6 @@ fn read_pid_file() -> Option<u32> {
 }
 
 fn is_pid_alive(pid: u32) -> bool {
-    if cfg!(windows) {
-        let filter = format!("PID eq {}", pid);
-        return Command::new("tasklist")
-            .args(["/FI", &filter])
-            .stdout(Stdio::piped())
-            .stderr(Stdio::null())
-            .output()
-            .map(|o| {
-                o.status.success()
-                    && String::from_utf8_lossy(&o.stdout)
-                        .to_lowercase()
-                        .contains(&pid.to_string())
-            })
-            .unwrap_or(false);
-    }
-
     Command::new("kill")
         .arg("-0")
         .arg(pid.to_string())
@@ -2215,27 +2174,6 @@ fn start_daemon_background(config_path: Option<PathBuf>) -> bool {
 }
 
 fn start_daemon_background_silent(config_path: Option<PathBuf>) -> Result<(u32, PathBuf), String> {
-    if cfg!(windows) {
-        enable_autostart_silent(config_path)?;
-        let status = Command::new("schtasks")
-            .args(["/Run", "/TN", launch_agent_label()])
-            .status()
-            .map_err(|err| format!("Failed to run Windows autostart task: {}", err))?;
-        if !status.success() {
-            return Err("Failed to start daemon via Scheduled Task.".to_string());
-        }
-
-        // Give the task a moment to spawn and write pid file.
-        thread::sleep(Duration::from_millis(800));
-        if let Some(pid) = read_live_pid() {
-            return Ok((pid, daemon_log_path()));
-        }
-        return Err(
-            "Scheduled Task started, but daemon did not report a live pid. Check daemon logs."
-                .to_string(),
-        );
-    }
-
     let exe = match std::env::current_exe() {
         Ok(p) => p,
         Err(err) => return Err(format!("Failed to resolve executable path: {}", err)),
@@ -2285,17 +2223,10 @@ fn stop_daemon_silent() -> Result<&'static str, String> {
     let Some(pid) = read_live_pid() else {
         return Ok("TypeSymbol daemon is not running.");
     };
-    let status = if cfg!(windows) {
-        Command::new("taskkill")
-            .args(["/PID", &pid.to_string(), "/T", "/F"])
-            .status()
-            .map_err(|err| format!("Failed to execute taskkill for pid {}: {}", pid, err))?
-    } else {
-        Command::new("kill")
-            .arg(pid.to_string())
-            .status()
-            .map_err(|err| format!("Failed to execute kill for pid {}: {}", pid, err))?
-    };
+    let status = Command::new("kill")
+        .arg(pid.to_string())
+        .status()
+        .map_err(|err| format!("Failed to execute kill for pid {}: {}", pid, err))?;
     if status.success() {
         let _ = fs::remove_file(daemon_pid_path());
         Ok("Background daemon stopped")
@@ -2313,17 +2244,11 @@ fn print_daemon_status() {
 }
 
 fn launch_agent_label() -> &'static str {
-    if cfg!(windows) {
-        "TypeSymbolDaemon"
-    } else {
-        "com.typesymbol.daemon"
-    }
+    "com.typesymbol.daemon"
 }
 
 fn launch_agent_path() -> PathBuf {
-    if cfg!(windows) {
-        state_dir().join("autostart.windows")
-    } else if let Ok(home) = std::env::var("HOME") {
+    if let Ok(home) = std::env::var("HOME") {
         PathBuf::from(home)
             .join("Library")
             .join("LaunchAgents")
@@ -2331,23 +2256,6 @@ fn launch_agent_path() -> PathBuf {
     } else {
         PathBuf::from("/tmp").join(format!("{}.plist", launch_agent_label()))
     }
-}
-
-fn windows_run_registry_path() -> &'static str {
-    r"HKCU\Software\Microsoft\Windows\CurrentVersion\Run"
-}
-
-fn windows_run_registry_value_name() -> &'static str {
-    "TypeSymbolDaemon"
-}
-
-fn windows_daemon_command(exe: &std::path::Path, config_path: Option<&PathBuf>) -> String {
-    let mut command = format!("\"{}\" ", exe.display());
-    if let Some(cfg) = config_path {
-        command.push_str(&format!("--config \"{}\" ", cfg.display()));
-    }
-    command.push_str("daemon run-internal");
-    command
 }
 
 fn enable_autostart(config_path: Option<PathBuf>) {
@@ -2370,57 +2278,6 @@ fn enable_autostart_silent(config_path: Option<PathBuf>) -> Result<PathBuf, Stri
     if let Some(parent) = agent_path.parent() {
         if let Err(err) = fs::create_dir_all(parent) {
             return Err(format!("Failed to create autostart directory {}: {}", parent.display(), err));
-        }
-    }
-
-    if cfg!(windows) {
-        let task_command = windows_daemon_command(&exe, config_path.as_ref());
-
-        let status = Command::new("schtasks")
-            .args([
-                "/Create",
-                "/TN",
-                launch_agent_label(),
-                "/SC",
-                "ONLOGON",
-                "/TR",
-                &task_command,
-                "/F",
-            ])
-            .status();
-        match status {
-            Ok(s) if s.success() => {
-                let _ = fs::write(&agent_path, task_command);
-                return Ok(agent_path);
-            }
-            Ok(_) | Err(_) => {
-                let reg_status = Command::new("reg")
-                    .args([
-                        "add",
-                        windows_run_registry_path(),
-                        "/v",
-                        windows_run_registry_value_name(),
-                        "/t",
-                        "REG_SZ",
-                        "/d",
-                        &task_command,
-                        "/f",
-                    ])
-                    .status();
-
-                match reg_status {
-                    Ok(s) if s.success() => {
-                        let _ = fs::write(&agent_path, task_command);
-                        return Ok(agent_path);
-                    }
-                    Ok(_) | Err(_) => {
-                        return Err(
-                            "Failed to configure Windows autostart (both Task Scheduler and HKCU Run key). Try running elevated or create it manually with schtasks."
-                                .to_string(),
-                        )
-                    }
-                }
-            }
         }
     }
 
@@ -2509,25 +2366,6 @@ fn disable_autostart() {
 
 fn disable_autostart_silent() -> Result<(), String> {
     let agent_path = launch_agent_path();
-    if cfg!(windows) {
-        let _ = Command::new("schtasks")
-            .args(["/Delete", "/TN", launch_agent_label(), "/F"])
-            .status();
-        let _ = Command::new("reg")
-            .args([
-                "delete",
-                windows_run_registry_path(),
-                "/v",
-                windows_run_registry_value_name(),
-                "/f",
-            ])
-            .status();
-        if agent_path.exists() {
-            let _ = fs::remove_file(&agent_path);
-        }
-        return Ok(());
-    }
-
     let _ = Command::new("launchctl")
         .arg("bootout")
         .arg(format!("gui/{}/{}", current_uid(), launch_agent_label()))
@@ -2639,19 +2477,6 @@ fn run_app_mode(config: TypeSymbolConfig) {
 }
 
 fn run_self_update(check_only: bool) {
-    if cfg!(target_os = "windows") {
-        if check_only {
-            println!("Windows update check is manual.");
-            println!("Check latest release: https://github.com/yazanmwk/TypeSymbol/releases/latest");
-            return;
-        }
-
-        println!("Windows update is installer-based right now.");
-        println!("Download and run the latest MSI from:");
-        println!("https://github.com/yazanmwk/TypeSymbol/releases/latest");
-        return;
-    }
-
     if !cfg!(target_os = "macos") {
         println!("Automatic update is currently supported on macOS Homebrew installs.");
         println!("Download the latest release from:");
