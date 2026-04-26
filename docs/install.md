@@ -1,9 +1,30 @@
 # TypeSymbol Install Guide
 
-Current official install path:
-- Windows MSI installer from GitHub Releases
+Official install paths:
+- macOS: Homebrew
+- Windows: MSI installer from GitHub Releases
 
-## Windows installer (official and only path)
+## macOS (Homebrew)
+
+```bash
+brew tap yazanmwk/homebrew-tap
+brew install typesymbol
+```
+
+Or:
+
+```bash
+brew install yazanmwk/homebrew-tap/typesymbol
+```
+
+Update:
+
+```bash
+brew update
+brew upgrade typesymbol
+```
+
+## Windows installer (official path)
 
 ### Install
 

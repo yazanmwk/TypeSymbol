@@ -124,11 +124,15 @@ flowchart TB
 
 ## Install
 
-### Current official installer path (single path)
+### Official install paths
 
-Install with the Windows `.msi` installer from the latest GitHub release:
+```bash
+# macOS (Homebrew)
+brew install yazanmwk/homebrew-tap/typesymbol
+```
 
 ```powershell
+# Windows (MSI installer from GitHub Releases)
 $release = "https://github.com/yazanmwk/TypeSymbol/releases/latest"
 Start-Process $release
 # Download: typesymbol-vX.Y.Z-x86_64-pc-windows-msvc.msi

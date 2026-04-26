@@ -44,6 +44,12 @@ template: |
 
   Verify downloaded files with `checksums.txt` before manual installation.
 
+  ### macOS (Homebrew)
+
+  ```bash
+  brew install yazanmwk/homebrew-tap/typesymbol
+  ```
+
   ## What's Changed
 
   $CHANGES
