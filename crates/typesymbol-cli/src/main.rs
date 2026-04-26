@@ -2622,63 +2622,15 @@ fn run_app_mode(config: TypeSymbolConfig) {
 
 fn run_self_update(check_only: bool) {
     if cfg!(target_os = "windows") {
-        let package_id = "yazanmwk.TypeSymbol";
-        let source = "winget";
         if check_only {
-            let output = Command::new("winget")
-                .args(["upgrade", "--id", package_id, "--exact", "--source", source])
-                .output();
-            match output {
-                Ok(result) if result.status.success() => {
-                    let stdout = String::from_utf8_lossy(&result.stdout).to_lowercase();
-                    if stdout.contains("no installed package found")
-                        || stdout.contains("no available upgrade found")
-                    {
-                        println!("TypeSymbol is up to date.");
-                    } else {
-                        println!("Update available. Run: typesymbol update");
-                    }
-                }
-                Ok(_) => {
-                    eprintln!(
-                        "Failed to check updates with winget. Run `winget --version` and verify the package id."
-                    );
-                    process::exit(1);
-                }
-                Err(err) => {
-                    eprintln!("Failed to launch winget: {}", err);
-                    process::exit(1);
-                }
-            }
+            println!("Windows update check is manual.");
+            println!("Check latest release: https://github.com/yazanmwk/TypeSymbol/releases/latest");
             return;
         }
 
-        println!("Running winget upgrade...");
-        let status = Command::new("winget")
-            .args([
-                "upgrade",
-                "--id",
-                package_id,
-                "--exact",
-                "--source",
-                source,
-            ])
-            .status();
-
-        match status {
-            Ok(s) if s.success() => {
-                println!("TypeSymbol update complete.");
-                println!("Tip: run `typesymbol --version` to verify.");
-            }
-            Ok(_) => {
-                eprintln!("winget upgrade exited with an error.");
-                process::exit(1);
-            }
-            Err(err) => {
-                eprintln!("Failed to launch winget: {}", err);
-                process::exit(1);
-            }
-        }
+        println!("Windows update is installer-based right now.");
+        println!("Download and run the latest MSI from:");
+        println!("https://github.com/yazanmwk/TypeSymbol/releases/latest");
         return;
     }
 

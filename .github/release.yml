@@ -25,10 +25,11 @@ changelog:
 template: |
   ## Install
 
-  ### Windows (recommended: WinGet)
+  ### Windows installer (official)
 
   ```powershell
-  winget install --id yazanmwk.TypeSymbol --exact --source winget
+  # Download and run:
+  # typesymbol-vX.Y.Z-x86_64-pc-windows-msvc.msi
   ```
 
   After install, TypeSymbol CLI opens with:
@@ -37,23 +38,11 @@ template: |
   ```
   Common in-shell commands: `on`, `off`, `daemon status`, `config show`, `help`, `exit`.
 
-  Upgrade:
-  ```powershell
-  winget upgrade --id yazanmwk.TypeSymbol --exact --source winget
-  ```
-
   Direct assets are attached to this release:
   - `typesymbol-vX.Y.Z-x86_64-pc-windows-msvc.msi`
   - `checksums.txt`
 
   Verify downloaded files with `checksums.txt` before manual installation.
-
-  ### macOS
-
-  ```bash
-  brew tap yazanmwk/homebrew-tap
-  brew install typesymbol
-  ```
 
   ## What's Changed
 

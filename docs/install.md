@@ -1,76 +1,22 @@
 # TypeSymbol Install Guide
 
-Official installs are package-manager based:
-- macOS: Homebrew tap
-- Windows: WinGet installer package
+Current official install path:
+- Windows MSI installer from GitHub Releases
 
-## macOS
+## Windows installer (official and only path)
 
-### Homebrew (recommended)
+### Install
 
-If you use [Homebrew](https://brew.sh/):
-
-```bash
-brew tap yazanmwk/homebrew-tap
-brew install typesymbol
-```
-
-or `brew install yazanmwk/homebrew-tap/typesymbol`. For tap setup and version bumps, see [homebrew-tap.md](homebrew-tap.md).
-
-To keep your machine up to date after install:
-
-```bash
-typesymbol update check
-typesymbol update
-```
-
-### Build from this repository (developer path)
-
-From repository root:
-
-```bash
-chmod +x scripts/install-macos.sh
-./scripts/install-macos.sh
-```
-
-What it installs/checks:
-- Xcode Command Line Tools
-- Homebrew
-- Git
-- rustup + Rust stable toolchain
-- Builds TypeSymbol and installs `typesymbol` to `~/.local/bin/typesymbol`
-
-After install, run:
-
-```bash
-typesymbol
-```
-
-If command is not found, add `~/.local/bin` to your shell PATH.
-
-## Windows (recommended)
-
-### WinGet (recommended)
-
-```powershell
-winget install --id yazanmwk.TypeSymbol --exact --source winget
-```
+1. Open [latest release](https://github.com/yazanmwk/TypeSymbol/releases/latest).
+2. Download `typesymbol-vX.Y.Z-x86_64-pc-windows-msvc.msi`.
+3. Run the installer.
+4. Open a new PowerShell window.
 
 Then run:
 
 ```powershell
 typesymbol test "alpha -> beta"
 typesymbol daemon status
-```
-
-Manage with WinGet:
-
-```powershell
-# Upgrade to latest published version
-winget upgrade --id yazanmwk.TypeSymbol --exact --source winget
-
-# Uninstall
-winget uninstall --id yazanmwk.TypeSymbol --exact
 ```
 
 Default CLI interface (Windows): `typesymbol` with no args opens the command shell.
@@ -80,17 +26,16 @@ typesymbol
 # in-shell commands: on, off, daemon status, config show, help, exit
 ```
 
-If you see a `VCRUNTIME140.dll` error, install the Microsoft VC++ Redistributable (x64), then run `winget upgrade` again:
+If you see a `VCRUNTIME140.dll` error, install the Microsoft VC++ Redistributable (x64), then rerun the latest MSI installer:
 
 ```powershell
 Invoke-WebRequest https://aka.ms/vs/17/release/vc_redist.x64.exe -OutFile vc_redist.x64.exe
 Start-Process .\vc_redist.x64.exe -ArgumentList "/install", "/quiet", "/norestart" -Wait
-winget upgrade --id yazanmwk.TypeSymbol --exact --source winget
 ```
 
-### Verify release checksums (manual assets only)
+### Verify release checksums (recommended)
 
-If you manually download release assets from GitHub instead of using package managers, verify integrity with `checksums.txt`.
+Before running the MSI, verify integrity with `checksums.txt`.
 
 Windows PowerShell:
 
@@ -113,16 +58,7 @@ if ($expected -ne $actual) { throw "Checksum mismatch. expected=$expected actual
 "Checksum OK"
 ```
 
-macOS:
-
-```bash
-VERSION="x.y.z"
-curl -L -o "typesymbol-v${VERSION}-aarch64-apple-darwin.tar.gz" "https://github.com/yazanmwk/TypeSymbol/releases/download/v${VERSION}/typesymbol-v${VERSION}-aarch64-apple-darwin.tar.gz"
-curl -L -o "checksums.txt" "https://github.com/yazanmwk/TypeSymbol/releases/download/v${VERSION}/checksums.txt"
-grep "typesymbol-v${VERSION}-aarch64-apple-darwin.tar.gz" checksums.txt | shasum -a 256 -c -
-```
-
-## Windows (from source)
+## Build from source (developer path)
 
 Build on a Windows machine with Rust installed:
 
