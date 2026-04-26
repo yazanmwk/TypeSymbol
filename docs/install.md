@@ -1,6 +1,8 @@
 # TypeSymbol Install Guide
 
-These installers bootstrap both dependencies and the `typesymbol` binary.
+Official installs are package-manager based:
+- macOS: Homebrew tap
+- Windows: WinGet installer package
 
 ## macOS
 
@@ -22,7 +24,7 @@ typesymbol update check
 typesymbol update
 ```
 
-### Build from this repository
+### Build from this repository (developer path)
 
 From repository root:
 
@@ -71,21 +73,6 @@ winget upgrade --id yazanmwk.TypeSymbol --exact --source winget
 winget uninstall --id yazanmwk.TypeSymbol --exact
 ```
 
-### GitHub installer (fallback)
-
-If you just want to install TypeSymbol on Windows:
-
-```powershell
-irm https://raw.githubusercontent.com/yazanmwk/TypeSymbol/main/scripts/install-windows-release.ps1 | iex
-```
-
-Then run:
-
-```powershell
-typesymbol test "alpha -> beta"
-typesymbol daemon status
-```
-
 Default CLI interface (Windows): `typesymbol` with no args opens the command shell.
 
 ```powershell
@@ -93,48 +80,35 @@ typesymbol
 # in-shell commands: on, off, daemon status, config show, help, exit
 ```
 
-If you see a `VCRUNTIME140.dll` error, install the Microsoft VC++ Redistributable (x64), then rerun:
+If you see a `VCRUNTIME140.dll` error, install the Microsoft VC++ Redistributable (x64), then run `winget upgrade` again:
 
 ```powershell
 Invoke-WebRequest https://aka.ms/vs/17/release/vc_redist.x64.exe -OutFile vc_redist.x64.exe
 Start-Process .\vc_redist.x64.exe -ArgumentList "/install", "/quiet", "/norestart" -Wait
+winget upgrade --id yazanmwk.TypeSymbol --exact --source winget
 ```
 
-Optional version-pinned install:
+### Verify release checksums (manual assets only)
 
-```powershell
-# Replace x.y.z with a real tag version shown on:
-# https://github.com/yazanmwk/TypeSymbol/releases
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/yazanmwk/TypeSymbol/main/scripts/install-windows-release.ps1))) -Version x.y.z
-```
-
-### Verify release checksums (recommended)
-
-Before manual install from GitHub release assets, verify integrity with `checksums.txt`.
+If you manually download release assets from GitHub instead of using package managers, verify integrity with `checksums.txt`.
 
 Windows PowerShell:
 
 ```powershell
 $ErrorActionPreference = "Stop"
 
-# Resolve latest release tag automatically.
-$latest = Invoke-RestMethod -Uri "https://api.github.com/repos/yazanmwk/TypeSymbol/releases/latest" -Headers @{ "User-Agent" = "TypeSymbolInstallDocs" }
-$version = $latest.tag_name.TrimStart("v")
-$asset = "typesymbol-v$version-x86_64-pc-windows-msvc.zip"
+$version = "x.y.z"
+$asset = "typesymbol-v$version-x86_64-pc-windows-msvc.msi"
 $base = "https://github.com/yazanmwk/TypeSymbol/releases/download/v$version"
 
 Invoke-WebRequest "$base/$asset" -OutFile $asset
 Invoke-WebRequest "$base/checksums.txt" -OutFile "checksums.txt"
-
-if (!(Test-Path ".\$asset")) { throw "Missing file: $asset" }
-if (!(Test-Path ".\checksums.txt")) { throw "Missing file: checksums.txt" }
 
 $line = Select-String -Path .\checksums.txt -Pattern ([regex]::Escape($asset)) | Select-Object -First 1
 if (-not $line) { throw "No checksum entry found for $asset" }
 
 $expected = ($line.ToString() -split '\s+')[0].ToLower()
 $actual = (Get-FileHash ".\$asset" -Algorithm SHA256).Hash.ToLower()
-
 if ($expected -ne $actual) { throw "Checksum mismatch. expected=$expected actual=$actual" }
 "Checksum OK"
 ```
@@ -148,29 +122,18 @@ curl -L -o "checksums.txt" "https://github.com/yazanmwk/TypeSymbol/releases/down
 grep "typesymbol-v${VERSION}-aarch64-apple-darwin.tar.gz" checksums.txt | shasum -a 256 -c -
 ```
 
-If Windows autostart setup logs `Access is denied` during install, TypeSymbol still installs and starts the daemon immediately. Re-run from an elevated PowerShell only if you specifically need Task Scheduler registration.
+## Windows (from source)
 
-## Windows (PowerShell from source)
-
-Run PowerShell as Administrator in repository root:
+Build on a Windows machine with Rust installed:
 
 ```powershell
-Set-ExecutionPolicy -Scope Process Bypass
-.\scripts\install-windows.ps1
+cargo build --release -p typesymbol-cli
 ```
 
-What it installs/checks:
-- `winget` availability
-- Git
-- Visual Studio Build Tools (C++ workload)
-- rustup + Rust stable toolchain
-- Builds TypeSymbol and installs `typesymbol.exe` to `%USERPROFILE%\bin`
-- Adds `%USERPROFILE%\bin` to user PATH
-
-After install, open a new PowerShell window and run:
+Then run the binary directly:
 
 ```powershell
-typesymbol
+.\target\release\typesymbol.exe
 ```
 
 ## Notes

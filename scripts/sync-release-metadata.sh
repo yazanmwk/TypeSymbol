@@ -9,7 +9,6 @@ REPO="${TYPESYMBOL_GITHUB_REPO:-yazanmwk/TypeSymbol}"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GENERATOR="$ROOT_DIR/scripts/generate-homebrew-formula.sh"
 FORMULA="$ROOT_DIR/packaging/homebrew/typesymbol.rb"
-WINDOWS_INSTALLER="$ROOT_DIR/scripts/install-windows-release.ps1"
 AUTO_STAGE="${AUTO_STAGE:-0}"
 STRICT_RELEASE_SYNC="${STRICT_RELEASE_SYNC:-0}"
 
@@ -17,20 +16,11 @@ if [[ ! -x "$GENERATOR" ]]; then
   chmod +x "$GENERATOR"
 fi
 
-if [[ ! -f "$WINDOWS_INSTALLER" ]]; then
-  echo "Missing Windows installer script: $WINDOWS_INSTALLER" >&2
-  exit 1
-fi
-
 api_url="https://api.github.com/repos/${REPO}/releases/latest"
 if ! release_json="$(curl -fsSL -H "Accept: application/vnd.github+json" -H "User-Agent: TypeSymbolSyncScript" "$api_url")"; then
   echo "Warning: unable to fetch latest release metadata from GitHub; skipping Homebrew sync." >&2
   if [[ "$STRICT_RELEASE_SYNC" == "1" ]]; then
     exit 1
-  fi
-  if [[ "$AUTO_STAGE" == "1" ]] && command -v git >/dev/null 2>&1; then
-    git -C "$ROOT_DIR" add "$WINDOWS_INSTALLER"
-    echo "Staged Windows installer only."
   fi
   exit 0
 fi
@@ -77,10 +67,6 @@ if ! curl -fsSL -H "User-Agent: TypeSymbolSyncScript" "$checksums_url" -o "$tmp_
   if [[ "$STRICT_RELEASE_SYNC" == "1" ]]; then
     exit 1
   fi
-  if [[ "$AUTO_STAGE" == "1" ]] && command -v git >/dev/null 2>&1; then
-    git -C "$ROOT_DIR" add "$WINDOWS_INSTALLER"
-    echo "Staged Windows installer only."
-  fi
   exit 0
 fi
 
@@ -88,6 +74,6 @@ fi
 echo "Synced Homebrew formula to ${release_tag}: $FORMULA"
 
 if [[ "$AUTO_STAGE" == "1" ]] && command -v git >/dev/null 2>&1; then
-  git -C "$ROOT_DIR" add "$FORMULA" "$WINDOWS_INSTALLER"
+  git -C "$ROOT_DIR" add "$FORMULA"
   echo "Staged metadata files for commit."
 fi

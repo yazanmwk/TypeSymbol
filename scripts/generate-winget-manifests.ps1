@@ -14,7 +14,7 @@ $wingetPublisher = if ($env:WINGET_PUBLISHER) { $env:WINGET_PUBLISHER } else { "
 $firstLetter = $wingetPublisher.Substring(0, 1).ToLower()
 $packageId = "$wingetPublisher.TypeSymbol"
 
-$artifact = "typesymbol-v$Version-x86_64-pc-windows-msvc.zip"
+$artifact = "typesymbol-v$Version-x86_64-pc-windows-msvc.msi"
 $checksums = Get-Content $ChecksumsFile
 $sha = $null
 foreach ($line in $checksums) {

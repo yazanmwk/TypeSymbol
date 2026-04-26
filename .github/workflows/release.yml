@@ -90,6 +90,10 @@ jobs:
       - name: Build release binary
         run: cargo build --release -p typesymbol-cli
 
+      - name: Install WiX Toolset
+        shell: pwsh
+        run: dotnet tool install --global wix --version 5.*
+
       - name: Package artifact
         shell: pwsh
         run: |
@@ -104,19 +108,17 @@ jobs:
             $shortSha = "${env:GITHUB_SHA}".Substring(0, 7)
             $releaseTag = "v0.0.0-dev-$safeBranch-$shortSha"
           }
+          $version = $releaseTag.TrimStart("v")
           $name = "typesymbol-$releaseTag-x86_64-pc-windows-msvc"
           New-Item -ItemType Directory -Force -Path dist | Out-Null
           Copy-Item target/release/typesymbol.exe dist/typesymbol.exe -Force
-          Compress-Archive -Path dist/typesymbol.exe -DestinationPath "$name.zip" -Force
-          Copy-Item scripts/install-windows-release.ps1 "typesymbol-$releaseTag-install-windows.ps1" -Force
+          scripts/build-windows-msi.ps1 -Version $version -BinaryPath "dist/typesymbol.exe" -OutputPath "$name.msi"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: typesymbol-x86_64-pc-windows-msvc
-          path: |
-            typesymbol-*.zip
-            typesymbol-*-install-windows.ps1
+          path: typesymbol-*.msi
 
   publish-release:
     name: Publish GitHub Release

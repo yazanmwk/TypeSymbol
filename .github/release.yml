@@ -31,27 +31,19 @@ template: |
   winget install --id yazanmwk.TypeSymbol --exact --source winget
   ```
 
-  ### Windows (fallback: PowerShell installer)
-
-  PowerShell one-liner:
-  ```powershell
-  irm https://raw.githubusercontent.com/yazanmwk/TypeSymbol/main/scripts/install-windows-release.ps1 | iex
-  ```
-
   After install, TypeSymbol CLI opens with:
   ```powershell
   typesymbol
   ```
   Common in-shell commands: `on`, `off`, `daemon status`, `config show`, `help`, `exit`.
 
-  Version-pinned install:
+  Upgrade:
   ```powershell
-  & ([scriptblock]::Create((irm https://raw.githubusercontent.com/yazanmwk/TypeSymbol/main/scripts/install-windows-release.ps1))) -Version X.Y.Z
+  winget upgrade --id yazanmwk.TypeSymbol --exact --source winget
   ```
 
   Direct assets are attached to this release:
-  - `typesymbol-vX.Y.Z-x86_64-pc-windows-msvc.zip`
-  - `typesymbol-vX.Y.Z-install-windows.ps1`
+  - `typesymbol-vX.Y.Z-x86_64-pc-windows-msvc.msi`
   - `checksums.txt`
 
   Verify downloaded files with `checksums.txt` before manual installation.

@@ -2622,22 +2622,46 @@ fn run_app_mode(config: TypeSymbolConfig) {
 
 fn run_self_update(check_only: bool) {
     if cfg!(target_os = "windows") {
+        let package_id = "yazanmwk.TypeSymbol";
+        let source = "winget";
         if check_only {
-            println!("Windows update check is manual right now.");
-            println!("To update, run:");
-            println!("powershell -NoProfile -ExecutionPolicy Bypass -Command \"& ([scriptblock]::Create((irm https://raw.githubusercontent.com/yazanmwk/TypeSymbol/main/scripts/install-windows-release.ps1))) -Version latest\"");
+            let output = Command::new("winget")
+                .args(["upgrade", "--id", package_id, "--exact", "--source", source])
+                .output();
+            match output {
+                Ok(result) if result.status.success() => {
+                    let stdout = String::from_utf8_lossy(&result.stdout).to_lowercase();
+                    if stdout.contains("no installed package found")
+                        || stdout.contains("no available upgrade found")
+                    {
+                        println!("TypeSymbol is up to date.");
+                    } else {
+                        println!("Update available. Run: typesymbol update");
+                    }
+                }
+                Ok(_) => {
+                    eprintln!(
+                        "Failed to check updates with winget. Run `winget --version` and verify the package id."
+                    );
+                    process::exit(1);
+                }
+                Err(err) => {
+                    eprintln!("Failed to launch winget: {}", err);
+                    process::exit(1);
+                }
+            }
             return;
         }
 
-        println!("Running Windows release installer...");
-        let script = "& ([scriptblock]::Create((irm https://raw.githubusercontent.com/yazanmwk/TypeSymbol/main/scripts/install-windows-release.ps1))) -Version latest";
-        let status = Command::new("powershell")
+        println!("Running winget upgrade...");
+        let status = Command::new("winget")
             .args([
-                "-NoProfile",
-                "-ExecutionPolicy",
-                "Bypass",
-                "-Command",
-                script,
+                "upgrade",
+                "--id",
+                package_id,
+                "--exact",
+                "--source",
+                source,
             ])
             .status();
 
@@ -2647,11 +2671,11 @@ fn run_self_update(check_only: bool) {
                 println!("Tip: run `typesymbol --version` to verify.");
             }
             Ok(_) => {
-                eprintln!("Windows installer exited with an error.");
+                eprintln!("winget upgrade exited with an error.");
                 process::exit(1);
             }
             Err(err) => {
-                eprintln!("Failed to launch PowerShell installer: {}", err);
+                eprintln!("Failed to launch winget: {}", err);
                 process::exit(1);
             }
         }

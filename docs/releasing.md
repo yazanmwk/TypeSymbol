@@ -9,8 +9,7 @@ This is fully automated once set up.
 - Outputs:
   - `typesymbol-vX.Y.Z-x86_64-apple-darwin.tar.gz`
   - `typesymbol-vX.Y.Z-aarch64-apple-darwin.tar.gz`
-  - `typesymbol-vX.Y.Z-x86_64-pc-windows-msvc.zip`
-  - `typesymbol-vX.Y.Z-install-windows.ps1`
+  - `typesymbol-vX.Y.Z-x86_64-pc-windows-msvc.msi`
   - `checksums.txt`
 - Publishes all artifacts to a GitHub Release automatically.
 
@@ -75,7 +74,7 @@ git config core.hooksPath .githooks
 
 The pre-commit hook runs `scripts/sync-release-metadata.sh`, which:
 - Regenerates `packaging/homebrew/typesymbol.rb` from the latest release `checksums.txt`
-- Stages `packaging/homebrew/typesymbol.rb` and `scripts/install-windows-release.ps1`
+- Stages `packaging/homebrew/typesymbol.rb`
 
 Manual run (without hook):
 
