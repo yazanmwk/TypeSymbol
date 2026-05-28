@@ -251,10 +251,21 @@ fn main() {
 
 fn run_interactive_tui(loaded: LoadedConfig, config_path: Option<PathBuf>) -> io::Result<()> {
     let mut stdout = io::stdout();
-    let _ = execute!(stdout, crossterm::terminal::Clear(crossterm::terminal::ClearType::All));
+    // Purge terminal scrollback history on primary screen so you cannot scroll up to see old chat
+    let _ = execute!(
+        stdout,
+        crossterm::terminal::Clear(crossterm::terminal::ClearType::All),
+        crossterm::terminal::Clear(crossterm::terminal::ClearType::Purge)
+    );
     let _ = stdout.flush();
     enable_raw_mode()?;
-    execute!(stdout, EnterAlternateScreen)?;
+    // Enter the alternate screen and purge again for absolute safety across different terminals
+    execute!(
+        stdout,
+        EnterAlternateScreen,
+        crossterm::terminal::Clear(crossterm::terminal::ClearType::All),
+        crossterm::terminal::Clear(crossterm::terminal::ClearType::Purge)
+    )?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
     terminal.hide_cursor()?;
@@ -594,14 +605,8 @@ fn draw_tui(frame: &mut ratatui::Frame<'_>, app: &TuiApp) {
             },
         ),
     ]);
-    let footer = Paragraph::new(footer_line)
-        .block(
-            Block::default().borders(Borders::TOP).border_style(if color_enabled {
-                Style::default().fg(Color::Rgb(186, 83, 230))
-            } else {
-                Style::default()
-            }),
-        );
+    // Removed the top border to eliminate the duplicate pink lines at the bottom
+    let footer = Paragraph::new(footer_line);
     frame.render_widget(footer, root[2]);
 
     if let Some(message) = &app.flash {
@@ -635,34 +640,17 @@ fn trigger_key_from_code(code: KeyCode) -> Option<String> {
 fn build_tui_header_lines(width: u16, line_budget: u16, color_enabled: bool) -> Vec<Line<'static>> {
     // Keep room for dashboard controls first, then spend remaining lines on branding.
     // This keeps the full logo visible whenever possible without clipping menu content.
-    if width >= 110 {
-        let type_rows = [
-            "████████╗██╗   ██╗██████╗ ███████╗",
-            "╚══██╔══╝╚██╗ ██╔╝██╔══██╗██╔════╝",
-            "   ██║    ╚████╔╝ ██████╔╝█████╗  ",
-            "   ██║     ╚██╔╝  ██╔═══╝ ██╔══╝  ",
-            "   ██║      ██║   ██║     ███████╗",
-            "   ╚═╝      ╚═╝   ╚═╝     ╚══════╝",
-        ];
-        let symbol_rows = [
-            "███████╗██╗   ██╗███╗   ███╗██████╗  ██████╗ ██╗     ",
-            "██╔════╝╚██╗ ██╔╝████╗ ████║██╔══██╗██╔═══██╗██║     ",
-            "███████╗ ╚████╔╝ ██╔████╔██║██████╔╝██║   ██║██║     ",
-            "╚════██║  ╚██╔╝  ██║╚██╔╝██║██╔══██╗██║   ██║██║     ",
-            "███████║   ██║   ██║ ╚═╝ ██║██████╔╝╚██████╔╝███████╗",
-            "╚══════╝   ╚═╝   ╚═╝     ╚═╝╚═════╝  ╚═════╝ ╚══════╝",
+    if width >= 94 {
+        let combined_rows = [
+            "████████╗██╗   ██╗██████╗ ███████╗    ███████╗██╗   ██╗███╗   ███╗██████╗  ██████╗ ██╗     ",
+            "╚══██╔══╝╚██╗ ██╔╝██╔══██╗██╔════╝    ██╔════╝╚██╗ ██╔╝████╗ ████║██╔══██╗██╔═══██╗██║     ",
+            "   ██║    ╚████╔╝ ██████╔╝█████╗         ███████╗ ╚████╔╝ ██╔████╔██║██████╔╝██║   ██║██║     ",
+            "   ██║     ╚██╔╝  ██╔═══╝ ██╔══╝         ╚════██║  ╚██╔╝  ██║╚██╔╝██║██╔══██╗██║   ██║██║     ",
+            "   ██║      ██║   ██║     ███████╗    ███████║   ██║   ██║ ╚═╝ ██║██████╔╝╚██████╔╝███████╗",
+            "   ╚═╝      ╚═╝   ╚═╝     ╚══════╝    ╚══════╝   ╚═╝   ╚═╝     ╚═╝╚═════╝  ╚═════╝ ╚══════╝",
         ];
         let mut lines: Vec<Line<'static>> = Vec::new();
-        for row in type_rows {
-            let line = if color_enabled {
-                gradient_wordmark_line(row)
-            } else {
-                Line::from(Span::raw(row))
-            };
-            lines.push(line.alignment(Alignment::Center));
-        }
-        lines.push(Line::from(""));
-        for row in symbol_rows {
+        for row in combined_rows {
             let line = if color_enabled {
                 gradient_wordmark_line(row)
             } else {
@@ -683,7 +671,15 @@ fn build_tui_header_lines(width: u16, line_budget: u16, color_enabled: bool) -> 
                 },
             ),
             Span::styled(
-                "system-wide math typing helper",
+                "TypeSymbol",
+                if color_enabled {
+                    Style::default().fg(Color::White).add_modifier(Modifier::BOLD)
+                } else {
+                    Style::default()
+                },
+            ),
+            Span::styled(
+                "  system-wide math typing helper",
                 if color_enabled {
                     Style::default().fg(Color::Gray)
                 } else {
