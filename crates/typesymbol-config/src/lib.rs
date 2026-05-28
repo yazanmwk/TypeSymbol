@@ -88,8 +88,23 @@ fn default_operators() -> HashMap<String, String> {
 fn default_excluded_apps() -> HashSet<String> {
     HashSet::from([
         "com.apple.Terminal".to_string(),
+        "com.googlecode.iterm2".to_string(),
+        "org.alacritty".to_string(),
+        "net.kovidgoyal.kitty".to_string(),
+        "com.github.wez.wezterm".to_string(),
+        "dev.warp.Warp-Stable".to_string(),
         "com.microsoft.VSCode".to_string(),
+        "com.todesktop.230313mpt4cr4nu".to_string(), // Cursor
+        "com.apple.dt.Xcode".to_string(),
+        "com.sublimetext.4".to_string(),
+        "com.sublimetext.3".to_string(),
         "com.jetbrains.rustrover".to_string(),
+        "com.jetbrains.intellij".to_string(),
+        "com.jetbrains.intellij.ce".to_string(),
+        "com.jetbrains.clion".to_string(),
+        "com.jetbrains.pycharm".to_string(),
+        "com.jetbrains.WebStorm".to_string(),
+        "com.google.android.studio".to_string(),
     ])
 }
 

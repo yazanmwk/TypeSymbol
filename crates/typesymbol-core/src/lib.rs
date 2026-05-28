@@ -52,70 +52,84 @@ impl CoreEngine {
             integral_bound_regex: Regex::new(r"(?i)\bint_0\^(?:inf|infinity)\b").expect("valid regex"),
             integral_verbose_regex: Regex::new(r"(?i)\bintegral0-(?:inf|infinity)\(([^)]+)\)").expect("valid regex"),
             integral_phrase_regex: Regex::new(
-                r"(?i)\b(?:integral|int)\s*(?:from\s+)?([A-Za-z0-9]+)\s*(?:to|->)\s*([A-Za-z0-9]+)\s*(.*)$",
+                r"(?i)\b(?:integral|int)\s*(?:from\s+)?([A-Za-z0-9∞_+\\*/()^{}θπα-ωΑ-Ω-]+)\s*(?:to|->)\s*([A-Za-z0-9∞_+\\*/()^{}θπα-ωΑ-Ω-]+)\s*(.*)$",
             )
             .expect("valid regex"),
             summation_regex: Regex::new(r"\bsum_\(i=1\)\^n\b").expect("valid regex"),
             summation_generic_regex: Regex::new(
-                r"(?i)\bsum_\(\s*([A-Za-z])\s*=\s*([A-Za-z0-9∞]+)\s*\)\s*\^\s*([A-Za-z0-9∞]+)(\s|$)",
+                r"(?i)\bsum_\(\s*([A-Za-z])\s*=\s*([A-Za-z0-9∞_+\\*/()^{}θπα-ωΑ-Ω-]+)\s*\)\s*\^\s*([A-Za-z0-9∞_+\\*/()^{}θπα-ωΑ-Ω-]+)(\s|$)",
             )
             .expect("valid regex"),
             summation_phrase_regex: Regex::new(
-                r"(?i)\b(?:sum|summation|sumnation)\s*(?:from\s+)?([A-Za-z])\s*=\s*([A-Za-z0-9∞]+)\s*(?:to|->)\s*([A-Za-z0-9∞]+)\s*(.*)$",
+                r"(?i)\b(?:sum|summation|sumnation)\s*(?:from\s+)?([A-Za-z])\s*=\s*([A-Za-z0-9∞_+\\*/()^{}θπα-ωΑ-Ω-]+)\s*(?:to|->)\s*([A-Za-z0-9∞_+\\*/()^{}θπα-ωΑ-Ω-]+)\s*(.*)$",
             )
             .expect("valid regex"),
             summation_phrase_implicit_var_regex: Regex::new(
-                r"(?i)\b(?:sum|summation|sumnation)\s*(?:from\s+)?([A-Za-z0-9∞]+)\s*(?:to|->)\s*([A-Za-z0-9∞]+)\s*(.*)$",
+                r"(?i)\b(?:sum|summation|sumnation)\s*(?:from\s+)?([A-Za-z0-9∞_+\\*/()^{}θπα-ωΑ-Ω-]+)\s*(?:to|->)\s*([A-Za-z0-9∞_+\\*/()^{}θπα-ωΑ-Ω-]+)\s*(.*)$",
             )
             .expect("valid regex"),
             product_generic_regex: Regex::new(
-                r"(?i)\b(?:prod|product)_\(\s*([A-Za-z])\s*=\s*([A-Za-z0-9∞]+)\s*\)\s*\^\s*([A-Za-z0-9∞]+)(\s|$)",
+                r"(?i)\b(?:prod|product)_\(\s*([A-Za-z])\s*=\s*([A-Za-z0-9∞_+\\*/()^{}θπα-ωΑ-Ω-]+)\s*\)\s*\^\s*([A-Za-z0-9∞_+\\*/()^{}θπα-ωΑ-Ω-]+)(\s|$)",
             )
             .expect("valid regex"),
             product_phrase_regex: Regex::new(
-                r"(?i)\b(?:product|prod)\s*(?:from\s+)?([A-Za-z])\s*=\s*([A-Za-z0-9∞]+)\s*(?:to|->)\s*([A-Za-z0-9∞]+)\s*(.*)$",
+                r"(?i)\b(?:product|prod)\s*(?:from\s+)?([A-Za-z])\s*=\s*([A-Za-z0-9∞_+\\*/()^{}θπα-ωΑ-Ω-]+)\s*(?:to|->)\s*([A-Za-z0-9∞_+\\*/()^{}θπα-ωΑ-Ω-]+)\s*(.*)$",
             )
             .expect("valid regex"),
-            laplace_regex: Regex::new(r"(?i)\blaplace(?:\s+transform)?\s+(?:of\s+)?(.+)$").expect("valid regex"),
+            laplace_regex: Regex::new(
+                r"(?i)\blaplace(?:\s+transform)?\s+(?:of\s+)?((?:[A-Za-z0-9_+\\*/()^|/θπα-ωΑ-Ω-]{1,3})|(?:[A-Za-z0-9_+\\*/()^|/θπα-ωΑ-Ω-]*[_+\\*/()^|/-][A-Za-z0-9_+\\*/()^|/θπα-ωΑ-Ω-]*))$",
+            )
+            .expect("valid regex"),
             inv_laplace_regex: Regex::new(
-                r"(?i)\b(?:inverse\s+laplace|inv\s+laplace)(?:\s+transform)?\s+(?:of\s+)?(.+)$",
+                r"(?i)\b(?:inverse\s+laplace|inv\s+laplace)(?:\s+transform)?\s+(?:of\s+)?((?:[A-Za-z0-9_+\\*/()^|/θπα-ωΑ-Ω-]{1,3})|(?:[A-Za-z0-9_+\\*/()^|/θπα-ωΑ-Ω-]*[_+\\*/()^|/-][A-Za-z0-9_+\\*/()^|/θπα-ωΑ-Ω-]*))$",
             )
             .expect("valid regex"),
-            fourier_regex: Regex::new(r"(?i)\bfourier(?:\s+transform)?\s+of\s+(.+)$").expect("valid regex"),
+            fourier_regex: Regex::new(
+                r"(?i)\bfourier(?:\s+transform)?\s+of\s+((?:[A-Za-z0-9_+\\*/()^|/θπα-ωΑ-Ω-]{1,3})|(?:[A-Za-z0-9_+\\*/()^|/θπα-ωΑ-Ω-]*[_+\\*/()^|/-][A-Za-z0-9_+\\*/()^|/θπα-ωΑ-Ω-]*))$",
+            )
+            .expect("valid regex"),
             inv_fourier_regex: Regex::new(
-                r"(?i)\b(?:inverse\s+fourier|inv\s+fourier)(?:\s+transform)?\s+of\s+(.+)$",
+                r"(?i)\b(?:inverse\s+fourier|inv\s+fourier)(?:\s+transform)?\s+of\s+((?:[A-Za-z0-9_+\\*/()^|/θπα-ωΑ-Ω-]{1,3})|(?:[A-Za-z0-9_+\\*/()^|/θπα-ωΑ-Ω-]*[_+\\*/()^|/-][A-Za-z0-9_+\\*/()^|/θπα-ωΑ-Ω-]*))$",
             )
             .expect("valid regex"),
             limit_phrase_regex: Regex::new(
-                r"(?i)\b(?:limit|lim)\s+([A-Za-z])\s+(?:to|->)\s+([A-Za-z0-9∞]+)\s+(?:of\s+)?(.+)$",
+                r"(?i)\b(?:limit|lim)\s+([A-Za-z])\s+(?:to|->)\s+([A-Za-z0-9∞_+\\*/()^{}θπα-ωΑ-Ω-]+)\s+(?:of\s+)?(.+)$",
             )
             .expect("valid regex"),
-            limit_arrow_regex: Regex::new(r"(?i)\blim\s*\(\s*([A-Za-z])\s*->\s*([A-Za-z0-9∞]+)\s*\)\s*(.+)$")
+            limit_arrow_regex: Regex::new(r"(?i)\blim\s*\(\s*([A-Za-z])\s*->\s*([A-Za-z0-9∞_+\\*/()^{}θπα-ωΑ-Ω-]+)\s*\)\s*(.+)$")
                 .expect("valid regex"),
             // Matches normalized arrow form after operator replacement.
             limit_arrow_unicode_regex: Regex::new(
-                r"(?i)\blim\s*\(\s*([A-Za-z])\s*→\s*([A-Za-z0-9∞]+)\s*\)\s*(.+)$",
+                r"(?i)\blim\s*\(\s*([A-Za-z])\s*→\s*([A-Za-z0-9∞_+\\*/()^{}θπα-ωΑ-Ω-]+)\s*\)\s*(.+)$",
             )
             .expect("valid regex"),
             partial_derivative_regex: Regex::new(r"(?i)\bpartial\s*/\s*partial\s*([A-Za-z])\s+(.+)$")
                 .expect("valid regex"),
-            forall_regex: Regex::new(r"(?i)\bfor\s+all\b|\bforall\b").expect("valid regex"),
-            exists_regex: Regex::new(r"(?i)\bthere\s+exists\b|\bexists\b").expect("valid regex"),
-            in_regex: Regex::new(r"(?i)\b([A-Za-z0-9_]{1,3})\s+in\s+([A-Z][A-Za-z0-9_]*)\b")
+            forall_regex: Regex::new(r"(?i)\b(?:for\s+all|forall)\s+([A-Za-z]|[A-Za-z][A-Za-z0-9_]?[0-9_]|[A-Za-z][0-9_][A-Za-z0-9_]?)\b").expect("valid regex"),
+            exists_regex: Regex::new(r"(?i)\b(?:there\s+exists|exists)\s+([A-Za-z]|[A-Za-z][A-Za-z0-9_]?[0-9_]|[A-Za-z][0-9_][A-Za-z0-9_]?)\b").expect("valid regex"),
+            in_regex: Regex::new(r"\b([A-Za-z]|[A-Za-z][A-Za-z0-9_]?[0-9_]|[A-Za-z][0-9_][A-Za-z0-9_]?)\s+(?i:in)\s+([A-Z][A-Za-z0-9_]{0,2})\b")
                 .expect("valid regex"),
-            not_in_regex: Regex::new(r"(?i)\b([A-Za-z0-9_]{1,3})\s+not\s+in\s+([A-Z][A-Za-z0-9_]*)\b")
+            not_in_regex: Regex::new(r"\b([A-Za-z]|[A-Za-z][A-Za-z0-9_]?[0-9_]|[A-Za-z][0-9_][A-Za-z0-9_]?)\s+(?i:not\s+in)\s+([A-Z][A-Za-z0-9_]{0,2})\b")
                 .expect("valid regex"),
             subseteq_regex: Regex::new(r"(?i)\bsubset\s*eq\b|\bsubseteq\b").expect("valid regex"),
-            union_regex: Regex::new(r"(?i)\bunion\b").expect("valid regex"),
-            intersection_regex: Regex::new(r"(?i)\bintersection\b").expect("valid regex"),
-            probability_regex: Regex::new(r"(?i)\b(?:probability|prob)\s+of\s+(.+)$").expect("valid regex"),
-            expectation_regex: Regex::new(r"(?i)\b(?:expectation|expected\s+value)\s+of\s+(.+)$")
-                .expect("valid regex"),
-            variance_regex: Regex::new(r"(?i)\b(?:variance|var)\s+of\s+(.+)$").expect("valid regex"),
+            union_regex: Regex::new(r"\b([A-Z][A-Za-z0-9_]{0,2})\s+(?i:union)\s+([A-Z][A-Za-z0-9_]{0,2})\b").expect("valid regex"),
+            intersection_regex: Regex::new(r"\b([A-Z][A-Za-z0-9_]{0,2})\s+(?i:intersection)\s+([A-Z][A-Za-z0-9_]{0,2})\b").expect("valid regex"),
+            probability_regex: Regex::new(
+                r"(?i)\b(?:probability|prob)\s+of\s+((?:[A-Za-z0-9_+\\*/()^|/θπα-ωΑ-Ω-]{1,3})|(?:[A-Za-z0-9_+\\*/()^|/θπα-ωΑ-Ω-]*[_+\\*/()^|/-][A-Za-z0-9_+\\*/()^|/θπα-ωΑ-Ω-]*))$",
+            )
+            .expect("valid regex"),
+            expectation_regex: Regex::new(
+                r"(?i)\b(?:expectation|expected\s+value)\s+of\s+((?:[A-Za-z0-9_+\\*/()^|/θπα-ωΑ-Ω-]{1,3})|(?:[A-Za-z0-9_+\\*/()^|/θπα-ωΑ-Ω-]*[_+\\*/()^|/-][A-Za-z0-9_+\\*/()^|/θπα-ωΑ-Ω-]*))$",
+            )
+            .expect("valid regex"),
+            variance_regex: Regex::new(
+                r"(?i)\b(?:variance|var)\s+of\s+((?:[A-Za-z0-9_+\\*/()^|/θπα-ωΑ-Ω-]{1,3})|(?:[A-Za-z0-9_+\\*/()^|/θπα-ωΑ-Ω-]*[_+\\*/()^|/-][A-Za-z0-9_+\\*/()^|/θπα-ωΑ-Ω-]*))$",
+            )
+            .expect("valid regex"),
             sqrt_group_regex: Regex::new(r"\bsqrt\(([^)]+)\)").expect("valid regex"),
             sqrt_word_regex: Regex::new(r"\bsqrt\s+([A-Za-z0-9]+)\b").expect("valid regex"),
-            superscript_regex: Regex::new(r"\^([A-Za-z0-9+\-=]+)").expect("valid regex"),
-            subscript_regex: Regex::new(r"_([A-Za-z0-9+\-=]+)").expect("valid regex"),
+            superscript_regex: Regex::new(r"([A-Za-z0-9∞θπα-ωΑ-Ω])\^([A-Za-z0-9+\-=]+)").expect("valid regex"),
+            subscript_regex: Regex::new(r"([A-Za-z0-9∞θπα-ωΑ-Ω])_([A-Za-z0-9+\-=]+)").expect("valid regex"),
         }
     }
 
@@ -158,14 +172,30 @@ impl CoreEngine {
         if self.config.features.superscripts {
             output = self
                 .superscript_regex
-                .replace_all(&output, |caps: &regex::Captures| to_super(&caps[1]))
+                .replace_all(&output, |caps: &regex::Captures| {
+                    let base = &caps[1];
+                    let index = &caps[2];
+                    if can_render_superscript(index) {
+                        format!("{}{}", base, to_super(index))
+                    } else {
+                        caps[0].to_string()
+                    }
+                })
                 .to_string();
         }
 
         if self.config.features.subscripts {
             output = self
                 .subscript_regex
-                .replace_all(&output, |caps: &regex::Captures| to_sub(&caps[1]))
+                .replace_all(&output, |caps: &regex::Captures| {
+                    let base = &caps[1];
+                    let index = &caps[2];
+                    if can_render_subscript(index) {
+                        format!("{}{}", base, to_sub(index))
+                    } else {
+                        caps[0].to_string()
+                    }
+                })
                 .to_string();
         }
 
@@ -303,19 +333,47 @@ impl CoreEngine {
 
         output = self
             .inv_laplace_regex
-            .replace_all(&output, |caps: &regex::Captures| format!("ℒ⁻¹{{{}}}", caps[1].trim()))
+            .replace_all(&output, |caps: &regex::Captures| {
+                let arg = caps[1].trim();
+                if is_valid_math_argument(arg) {
+                    format!("ℒ⁻¹{{{}}}", arg)
+                } else {
+                    caps[0].to_string()
+                }
+            })
             .to_string();
         output = self
             .laplace_regex
-            .replace_all(&output, |caps: &regex::Captures| format!("ℒ{{{}}}", caps[1].trim()))
+            .replace_all(&output, |caps: &regex::Captures| {
+                let arg = caps[1].trim();
+                if is_valid_math_argument(arg) {
+                    format!("ℒ{{{}}}", arg)
+                } else {
+                    caps[0].to_string()
+                }
+            })
             .to_string();
         output = self
             .inv_fourier_regex
-            .replace_all(&output, |caps: &regex::Captures| format!("ℱ⁻¹{{{}}}", caps[1].trim()))
+            .replace_all(&output, |caps: &regex::Captures| {
+                let arg = caps[1].trim();
+                if is_valid_math_argument(arg) {
+                    format!("ℱ⁻¹{{{}}}", arg)
+                } else {
+                    caps[0].to_string()
+                }
+            })
             .to_string();
         output = self
             .fourier_regex
-            .replace_all(&output, |caps: &regex::Captures| format!("ℱ{{{}}}", caps[1].trim()))
+            .replace_all(&output, |caps: &regex::Captures| {
+                let arg = caps[1].trim();
+                if is_valid_math_argument(arg) {
+                    format!("ℱ{{{}}}", arg)
+                } else {
+                    caps[0].to_string()
+                }
+            })
             .to_string();
 
         output = self
@@ -380,15 +438,36 @@ impl CoreEngine {
 
         output = self
             .probability_regex
-            .replace_all(&output, |caps: &regex::Captures| format!("P({})", caps[1].trim()))
+            .replace_all(&output, |caps: &regex::Captures| {
+                let arg = caps[1].trim();
+                if is_valid_math_argument(arg) {
+                    format!("P({})", arg)
+                } else {
+                    caps[0].to_string()
+                }
+            })
             .to_string();
         output = self
             .expectation_regex
-            .replace_all(&output, |caps: &regex::Captures| format!("E[{}]", caps[1].trim()))
+            .replace_all(&output, |caps: &regex::Captures| {
+                let arg = caps[1].trim();
+                if is_valid_math_argument(arg) {
+                    format!("E[{}]", arg)
+                } else {
+                    caps[0].to_string()
+                }
+            })
             .to_string();
         output = self
             .variance_regex
-            .replace_all(&output, |caps: &regex::Captures| format!("Var({})", caps[1].trim()))
+            .replace_all(&output, |caps: &regex::Captures| {
+                let arg = caps[1].trim();
+                if is_valid_math_argument(arg) {
+                    format!("Var({})", arg)
+                } else {
+                    caps[0].to_string()
+                }
+            })
             .to_string();
 
         output = self
@@ -403,20 +482,46 @@ impl CoreEngine {
             .to_string();
         output = self
             .union_regex
-            .replace_all(&output, "∪")
+            .replace_all(&output, |caps: &regex::Captures| {
+                format!("{} ∪ {}", &caps[1], &caps[2])
+            })
             .to_string();
         output = self
             .intersection_regex
-            .replace_all(&output, "∩")
+            .replace_all(&output, |caps: &regex::Captures| {
+                format!("{} ∩ {}", &caps[1], &caps[2])
+            })
             .to_string();
+
         output = self
             .forall_regex
-            .replace_all(&output, "∀")
+            .replace_all(&output, |caps: &regex::Captures| {
+                let var = &caps[1];
+                let match_end = caps.get(0).unwrap().end();
+                let remaining = &output[match_end..];
+                let next_token = get_next_token(remaining);
+                if is_valid_forall_variable(var, next_token) {
+                    format!("∀ {}", var)
+                } else {
+                    caps[0].to_string()
+                }
+            })
             .to_string();
         output = self
             .exists_regex
-            .replace_all(&output, "∃")
+            .replace_all(&output, |caps: &regex::Captures| {
+                let var = &caps[1];
+                let match_end = caps.get(0).unwrap().end();
+                let remaining = &output[match_end..];
+                let next_token = get_next_token(remaining);
+                if is_valid_forall_variable(var, next_token) {
+                    format!("∃ {}", var)
+                } else {
+                    caps[0].to_string()
+                }
+            })
             .to_string();
+
         output = self
             .in_regex
             .replace_all(&output, |caps: &regex::Captures| {
@@ -697,6 +802,172 @@ fn map_subscript_char(ch: char) -> char {
     }
 }
 
+fn is_greek_letter(var: &str) -> bool {
+    let lower = var.to_lowercase();
+    matches!(
+        lower.as_str(),
+        "alpha"
+            | "beta"
+            | "gamma"
+            | "theta"
+            | "lambda"
+            | "pi"
+            | "epsilon"
+            | "delta"
+            | "omega"
+            | "sigma"
+            | "mu"
+            | "nu"
+            | "phi"
+            | "psi"
+            | "rho"
+            | "tau"
+            | "eta"
+            | "zeta"
+            | "chi"
+    )
+}
+
+fn is_valid_math_argument(arg: &str) -> bool {
+    let trimmed = arg.trim();
+    if trimmed.is_empty() {
+        return false;
+    }
+    if trimmed.contains(|c: char| {
+        matches!(
+            c,
+            '_' | '^'
+                | '+'
+                | '-'
+                | '*'
+                | '/'
+                | '|'
+                | '('
+                | ')'
+                | '='
+                | '<'
+                | '>'
+                | '∈'
+                | '∉'
+                | '⊆'
+                | '∪'
+                | '∩'
+                | '≤'
+                | '≥'
+                | '≠'
+                | '→'
+                | '←'
+                | '↔'
+                | '±'
+                | '∂'
+                | '∫'
+                | '∑'
+                | '∏'
+                | '√'
+                | '∞'
+                | ','
+        )
+    }) {
+        return true;
+    }
+    if trimmed.contains(|c: char| c.is_ascii_digit()) {
+        return true;
+    }
+    if trimmed.chars().count() == 1 {
+        return true;
+    }
+    if is_greek_letter(trimmed) {
+        return true;
+    }
+    if trimmed.chars().all(|c| c.is_ascii_uppercase()) {
+        return true;
+    }
+    false
+}
+
+fn is_valid_forall_variable(var: &str, next_token: Option<&str>) -> bool {
+    let trimmed = var.trim();
+    if trimmed.is_empty() {
+        return false;
+    }
+    if trimmed.len() > 1 && trimmed.chars().any(|c| c.is_ascii_digit() || c == '_') {
+        return true;
+    }
+    if is_greek_letter(trimmed) {
+        return true;
+    }
+    if trimmed.chars().count() == 1 {
+        let ch = trimmed.chars().next().unwrap();
+        if ch != 'a' && ch != 'i' && ch != 'I' {
+            return true;
+        }
+    }
+    if let Some(next) = next_token {
+        let next_lower = next.to_lowercase();
+        if [
+            "in", "not", "∈", "∉", "⊆", "=", "<", ">", "≤", "≥", "≠", "+", "-", "*", "/", ",", "|",
+        ]
+        .contains(&next_lower.as_str())
+        {
+            return true;
+        }
+        if next.len() == 1 && next.chars().next().map(|c| c.is_ascii_punctuation()).unwrap_or(false) {
+            return true;
+        }
+    } else {
+        return true;
+    }
+    false
+}
+
+fn get_next_token(remaining: &str) -> Option<&str> {
+    let trimmed = remaining.trim_start();
+    if trimmed.is_empty() {
+        return None;
+    }
+    let first_char = trimmed.chars().next().unwrap();
+    if first_char.is_ascii_punctuation() || is_math_symbol_char(first_char) {
+        return Some(&trimmed[..first_char.len_utf8()]);
+    }
+    let word_end = trimmed
+        .find(|c: char| !c.is_ascii_alphanumeric() && c != '_')
+        .unwrap_or(trimmed.len());
+    Some(&trimmed[..word_end])
+}
+
+fn is_math_symbol_char(ch: char) -> bool {
+    matches!(
+        ch,
+        '∈' | '∉'
+            | '⊆'
+            | '∪'
+            | '∩'
+            | '≤'
+            | '≥'
+            | '≠'
+            | '→'
+            | '←'
+            | '↔'
+            | '±'
+            | 'α'
+            | 'β'
+            | 'γ'
+            | 'θ'
+            | 'λ'
+            | 'π'
+            | '∀'
+            | '∃'
+            | 'ℒ'
+            | 'ℱ'
+            | '∂'
+            | '∫'
+            | '∑'
+            | '∏'
+            | '√'
+            | '∞'
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::CoreEngine;
@@ -862,5 +1133,92 @@ mod tests {
             engine.format("when i type in it"),
             "when i type in it"
         );
+    }
+
+    #[test]
+    fn converts_flexible_bounds() {
+        let engine = CoreEngine::new(TypeSymbolConfig::default());
+        assert_eq!(
+            engine.format("integral from -1 to 1 of x dx"),
+            "∫₋₁¹ x dx"
+        );
+        assert_eq!(
+            engine.format("integral from -inf to inf of x^2 dx"),
+            "∫_{-∞}^∞ x² dx"
+        );
+        assert_eq!(
+            engine.format("sum from i = k-1 to k+1 of i"),
+            "∑ᵢ₌_{k-1}ᵏ⁺¹ i"
+        );
+        assert_eq!(
+            engine.format("integral from 0 to theta of sin(x) dx"),
+            "∫₀ᵗʰᵉᵗᵃ sin(x) dx"
+        );
+        assert_eq!(
+            engine.format("limit x to x_0 of f(x)"),
+            "lim_{x}→x₀ f(x)"
+        );
+    }
+
+    #[test]
+    fn test_rigorous_english_phrases() {
+        let engine = CoreEngine::new(TypeSymbolConfig::default());
+        let test_cases = vec![
+            "I have an interest in art",
+            "He is an integral part of the team",
+            "Let's sum up the numbers",
+            "This is a product of our hard work",
+            "Is there any limit to this?",
+            "We have limited time",
+            "I partially agree with you",
+            "What is the probability of rain tomorrow?",
+            "The variance of the sample is small",
+            "I have high expectation of success",
+            "Please log in to your account",
+            "We should check in soon",
+            "He is in a meeting",
+            "Thanks for all your help",
+            "I am in Paris right now",
+            "The European Union is meeting today",
+            "Let's meet at the intersection of 5th and Main",
+            "It is not in the list",
+            "Pinterest is a great app",
+            "an intent of doing something",
+            "internal server error",
+            "summit of the mountain",
+            "summary of the report",
+            "slime on the wall",
+            "variant of the virus",
+            "variety of options",
+            "unionized workers",
+            "intersections on the road",
+            "existential crisis",
+            "there exists another way",
+            "when i type in it",
+            "in a minute",
+            "for all I care",
+            "there exists a solution",
+            "probability of it",
+            "my_document_v1",
+            "_italic_",
+            "Yesterday, I went to the store and bought a Raspberry Pi because I wanted to build a small media server. I also need to find the sum of all my expenses soon.",
+            "This is a big paragraph containing several common English words like union, intersection, limit, for all, there exists, probability, variance, and expectation. Under normal typing, none of these should format into mathematical symbols because they lack the specific mathematical variable structures and operands required.",
+        ];
+
+        for &case in &test_cases {
+            assert_eq!(engine.format(case), case, "Should not format: '{}'", case);
+        }
+    }
+
+    #[test]
+    fn test_additional_math_expressions() {
+        let engine = CoreEngine::new(TypeSymbolConfig::default());
+        assert_eq!(engine.format("for all x in R"), "∀ x ∈ R");
+        assert_eq!(engine.format("there exists y in C"), "∃ y ∈ C");
+        assert_eq!(engine.format("A union B"), "A ∪ B");
+        assert_eq!(engine.format("A intersection B"), "A ∩ B");
+        assert_eq!(engine.format("probability of A"), "P(A)");
+        assert_eq!(engine.format("expected value of X"), "E[X]");
+        assert_eq!(engine.format("variance of Y"), "Var(Y)");
     }
 }

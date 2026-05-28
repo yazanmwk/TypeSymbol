@@ -25,6 +25,7 @@ pub enum PlatformEvent {
     Char(char),
     Backspace,
     AcceptTrigger,
+    Clear,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -88,9 +89,11 @@ impl MacOSAdapter {
                         if on_event(PlatformEvent::AcceptTrigger) {
                             None
                         } else {
+                            on_event(PlatformEvent::Clear);
                             Some(event)
                         }
                     } else {
+                        on_event(PlatformEvent::Clear);
                         Some(event)
                     }
                 }
@@ -102,6 +105,19 @@ impl MacOSAdapter {
                         on_event(PlatformEvent::Char(' '));
                         Some(event)
                     }
+                }
+                EventType::KeyPress(Key::UpArrow)
+                | EventType::KeyPress(Key::DownArrow)
+                | EventType::KeyPress(Key::LeftArrow)
+                | EventType::KeyPress(Key::RightArrow)
+                | EventType::KeyPress(Key::Escape)
+                | EventType::KeyPress(Key::Tab) => {
+                    on_event(PlatformEvent::Clear);
+                    Some(event)
+                }
+                EventType::ButtonPress(_) => {
+                    on_event(PlatformEvent::Clear);
+                    Some(event)
                 }
                 EventType::KeyPress(_) => {
                     if let Some(ref text) = event.name {

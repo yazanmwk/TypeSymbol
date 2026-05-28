@@ -146,6 +146,11 @@ impl DaemonState {
                     false
                 }
             }
+            PlatformEvent::Clear => {
+                self.daemon.reset_buffer();
+                self.last_prompt = None;
+                false
+            }
         }
     }
 
@@ -344,9 +349,15 @@ fn is_membership_expression(input: &str) -> bool {
 
     // Keep this strict to avoid false positives in plain English:
     // `x in A`, `n in N`, `t in R`, etc.
-    let left_ok = left.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
-        && left.chars().count() <= 3;
-    let right_ok = right.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+    let left_ok = (left.chars().count() == 1 && left.chars().next().unwrap().is_ascii_alphabetic())
+        || (left.chars().count() > 1
+            && left.chars().count() <= 3
+            && left.chars().next().unwrap().is_ascii_alphabetic()
+            && left.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+            && left.chars().any(|c| c.is_ascii_digit() || c == '_'));
+
+    let right_ok = right.chars().count() <= 3
+        && right.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
         && right
             .chars()
             .next()
@@ -437,5 +448,87 @@ mod tests {
             candidate.replacement,
             "this is a long prefix that should not break integral parsing ∫₀^∞ cos x dx"
         );
+    }
+
+    #[test]
+    fn test_rigorous_english_phrases_not_replaced() {
+        let mut daemon = TypeSymbolDaemon::new(TypeSymbolConfig::default());
+        let test_cases = vec![
+            "I have an interest in art",
+            "He is an integral part of the team",
+            "Let's sum up the numbers",
+            "This is a product of our hard work",
+            "Is there any limit to this?",
+            "We have limited time",
+            "I partially agree with you",
+            "What is the probability of rain tomorrow?",
+            "The variance of the sample is small",
+            "I have high expectation of success",
+            "Please log in to your account",
+            "We should check in soon",
+            "He is in a meeting",
+            "Thanks for all your help",
+            "I am in Paris right now",
+            "The European Union is meeting today",
+            "Let's meet at the intersection of 5th and Main",
+            "It is not in the list",
+            "Pinterest is a great app",
+            "an intent of doing something",
+            "internal server error",
+            "summit of the mountain",
+            "summary of the report",
+            "slime on the wall",
+            "variant of the virus",
+            "variety of options",
+            "unionized workers",
+            "intersections on the road",
+            "existential crisis",
+            "there exists another way",
+            "when i type in it",
+            "in a minute",
+            "for all I care",
+            "there exists a solution",
+            "probability of it",
+            "my_document_v1",
+            "_italic_",
+            "Yesterday, I went to the store and bought a Raspberry Pi because I wanted to build a small media server. I also need to find the sum of all my expenses soon.",
+            "This is a big paragraph containing several common English words like union, intersection, limit, for all, there exists, probability, variance, and expectation. Under normal typing, none of these should format into mathematical symbols because they lack the specific mathematical variable structures and operands required.",
+        ];
+
+        for &case in &test_cases {
+            daemon.reset_buffer();
+            for ch in case.chars() {
+                daemon.on_char_typed(ch);
+            }
+            assert!(
+                daemon.preview_replacement().is_none(),
+                "Should not trigger replacement for: '{}', got {:?}",
+                case,
+                daemon.preview_replacement()
+            );
+        }
+    }
+
+    #[test]
+    fn test_rigorous_math_phrases_replaced() {
+        let mut daemon = TypeSymbolDaemon::new(TypeSymbolConfig::default());
+        let test_cases = vec![
+            ("for all x in R", "∀ x ∈ R"),
+            ("there exists y in C", "∃ y ∈ C"),
+            ("A union B", "A ∪ B"),
+            ("A intersection B", "A ∩ B"),
+            ("probability of A", "P(A)"),
+            ("expected value of X", "E[X]"),
+            ("variance of Y", "Var(Y)"),
+        ];
+
+        for &(input, expected) in &test_cases {
+            daemon.reset_buffer();
+            for ch in input.chars() {
+                daemon.on_char_typed(ch);
+            }
+            let candidate = daemon.preview_replacement().expect("should find replacement");
+            assert_eq!(candidate.replacement, expected);
+        }
     }
 }
