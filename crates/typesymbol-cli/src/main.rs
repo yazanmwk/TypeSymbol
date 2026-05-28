@@ -251,6 +251,8 @@ fn main() {
 
 fn run_interactive_tui(loaded: LoadedConfig, config_path: Option<PathBuf>) -> io::Result<()> {
     let mut stdout = io::stdout();
+    let _ = execute!(stdout, crossterm::terminal::Clear(crossterm::terminal::ClearType::All));
+    let _ = stdout.flush();
     enable_raw_mode()?;
     execute!(stdout, EnterAlternateScreen)?;
     let backend = CrosstermBackend::new(stdout);
