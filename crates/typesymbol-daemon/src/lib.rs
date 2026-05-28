@@ -1,16 +1,17 @@
+#[cfg(not(target_os = "macos"))]
+compile_error!("TypeSymbol only supports macOS.");
+
 use typesymbol_config::TypeSymbolConfig;
 use typesymbol_core::CoreEngine;
 use std::panic::{self, AssertUnwindSafe};
 use std::sync::{Arc, Mutex};
 use std::process::Command;
 
-#[cfg(target_os = "macos")]
 use typesymbol_platform_macos::{
     force_release_input_guard, inject_replacement, MacOSAdapter as PlatformAdapter, PlatformEvent,
 };
 
 pub fn run(config: TypeSymbolConfig) {
-    #[cfg(target_os = "macos")]
     install_panic_release_hook();
 
     if is_virtual_machine() {
@@ -43,7 +44,6 @@ pub fn run(config: TypeSymbolConfig) {
         match result {
             Ok(v) => v,
             Err(_) => {
-                #[cfg(target_os = "macos")]
                 force_release_input_guard();
                 eprintln!("TypeSymbol safety: recovered from event handler panic.");
                 false
@@ -52,7 +52,6 @@ pub fn run(config: TypeSymbolConfig) {
     });
 }
 
-#[cfg(target_os = "macos")]
 fn install_panic_release_hook() {
     let previous = panic::take_hook();
     panic::set_hook(Box::new(move |info| {
@@ -62,34 +61,11 @@ fn install_panic_release_hook() {
 }
 
 fn is_virtual_machine() -> bool {
-    #[cfg(target_os = "macos")]
-    {
-        return command_output_contains_any(
-            "sysctl",
-            &["-n", "machdep.cpu.features"],
-            &["vmm", "hypervisor"],
-        );
-    }
-
-    #[cfg(target_os = "linux")]
-    {
-        if command_output_contains_any(
-            "systemd-detect-virt",
-            &[],
-            &["kvm", "qemu", "vmware", "oracle", "microsoft", "xen", "bochs", "parallels"],
-        ) {
-            return true;
-        }
-
-        return command_output_contains_any(
-            "sh",
-            &["-c", "cat /proc/cpuinfo"],
-            &["hypervisor", "kvm", "vmware", "qemu", "xen", "virtualbox"],
-        );
-    }
-
-    #[allow(unreachable_code)]
-    false
+    command_output_contains_any(
+        "sysctl",
+        &["-n", "machdep.cpu.features"],
+        &["vmm", "hypervisor"],
+    )
 }
 
 fn command_output_contains_any(cmd: &str, args: &[&str], needles: &[&str]) -> bool {

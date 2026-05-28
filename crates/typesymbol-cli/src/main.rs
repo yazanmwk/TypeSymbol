@@ -1,3 +1,6 @@
+#[cfg(not(target_os = "macos"))]
+compile_error!("TypeSymbol only supports macOS.");
+
 use clap::{Parser, Subcommand};
 use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 use crossterm::terminal::{
@@ -107,6 +110,12 @@ struct LoadedConfig {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
+enum PendingAction {
+    CheckUpdates,
+    Uninstall,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
 enum Screen {
     Dashboard,
     Help,
@@ -123,6 +132,9 @@ struct TuiApp {
     capture_trigger: bool,
     flash: Option<String>,
     error: Option<String>,
+    pending_action: Option<PendingAction>,
+    confirm_uninstall: bool,
+    uninstall_complete: bool,
 }
 
 fn resolve_config(cli: &Cli) -> LoadedConfig {
@@ -257,11 +269,57 @@ fn run_interactive_tui(loaded: LoadedConfig, config_path: Option<PathBuf>) -> io
         capture_trigger: false,
         flash: None,
         error: None,
+        pending_action: None,
+        confirm_uninstall: false,
+        uninstall_complete: false,
     };
 
     let result = (|| -> io::Result<()> {
         loop {
             terminal.draw(|f| draw_tui(f, &app))?;
+
+            if let Some(action) = app.pending_action.take() {
+                match action {
+                    PendingAction::CheckUpdates => {
+                        match check_for_updates_silent() {
+                            Ok(true) => {
+                                app.flash = Some("Update available! Run 'typesymbol update' to upgrade.".to_string());
+                            }
+                            Ok(false) => {
+                                app.flash = Some("TypeSymbol is up to date.".to_string());
+                            }
+                            Err(err) => {
+                                app.error = Some(err);
+                                app.flash = None;
+                            }
+                        }
+                    }
+                    PendingAction::Uninstall => {
+                        let daemon_stop_res = stop_daemon_silent();
+                        let autostart_res = disable_autostart_silent();
+                        let _ = Command::new("brew")
+                            .args(["uninstall", "typesymbol"])
+                            .stdout(Stdio::null())
+                            .stderr(Stdio::null())
+                            .spawn();
+                        let msg = match (daemon_stop_res, autostart_res) {
+                            (Ok(_), Ok(_)) => {
+                                "Uninstalled successfully!\nStopped daemon and disabled autostart.\nHomebrew uninstall triggered.\nPress any key to exit.".to_string()
+                            }
+                            (Err(e), _) => {
+                                format!("Uninstall partially succeeded with daemon error:\n{}\nPress any key to exit.", e)
+                            }
+                            (_, Err(e)) => {
+                                format!("Uninstall partially succeeded with autostart error:\n{}\nPress any key to exit.", e)
+                            }
+                        };
+                        app.flash = Some(msg);
+                        app.uninstall_complete = true;
+                    }
+                }
+                continue;
+            }
+
             if event::poll(Duration::from_millis(120))? {
                 match event::read()? {
                     Event::Key(key) => {
@@ -291,6 +349,24 @@ fn run_interactive_tui(loaded: LoadedConfig, config_path: Option<PathBuf>) -> io
 }
 
 fn handle_tui_key(app: &mut TuiApp, code: KeyCode) -> io::Result<bool> {
+    if app.uninstall_complete {
+        return Ok(true);
+    }
+    if app.confirm_uninstall {
+        match code {
+            KeyCode::Char('y') | KeyCode::Char('Y') => {
+                app.confirm_uninstall = false;
+                app.flash = Some("Uninstalling TypeSymbol, please wait...".to_string());
+                app.pending_action = Some(PendingAction::Uninstall);
+            }
+            _ => {
+                app.confirm_uninstall = false;
+                app.flash = Some("Uninstall canceled.".to_string());
+            }
+        }
+        return Ok(false);
+    }
+
     if app.capture_trigger {
         match code {
             KeyCode::Esc | KeyCode::Backspace => {
@@ -337,7 +413,7 @@ fn handle_tui_key(app: &mut TuiApp, code: KeyCode) -> io::Result<bool> {
         },
         KeyCode::Down | KeyCode::Char('j') => match app.screen {
             Screen::Dashboard => app.selected = (app.selected + 1).min(4),
-            Screen::Config => app.config_selected = (app.config_selected + 1).min(3),
+            Screen::Config => app.config_selected = (app.config_selected + 1).min(5),
             Screen::Help => {}
         },
         KeyCode::Enter => match app.screen {
@@ -442,7 +518,15 @@ fn handle_config_action(app: &mut TuiApp) -> io::Result<()> {
                 )),
             }
         }
-        3 => app.screen = Screen::Dashboard,
+        3 => {
+            app.flash = Some("Checking for updates, please wait...".to_string());
+            app.pending_action = Some(PendingAction::CheckUpdates);
+        }
+        4 => {
+            app.confirm_uninstall = true;
+            app.flash = Some("Are you sure you want to uninstall TypeSymbol?\nPress 'y' to confirm, any other key to cancel.".to_string());
+        }
+        5 => app.screen = Screen::Dashboard,
         _ => {}
     }
     Ok(())
@@ -476,7 +560,18 @@ fn draw_tui(frame: &mut ratatui::Frame<'_>, app: &TuiApp) {
                 Style::default().fg(Color::Rgb(186, 83, 230))
             } else {
                 Style::default()
-            }),
+            })
+            .title(
+                Line::from(Span::styled(
+                    format!(" v{} ", APP_VERSION),
+                    if color_enabled {
+                        Style::default().fg(Color::Rgb(255, 92, 203)).add_modifier(Modifier::BOLD)
+                    } else {
+                        Style::default().add_modifier(Modifier::BOLD)
+                    }
+                ))
+                .alignment(Alignment::Right)
+            ),
     );
     frame.render_widget(header, root[0]);
 
@@ -487,9 +582,6 @@ fn draw_tui(frame: &mut ratatui::Frame<'_>, app: &TuiApp) {
     }
 
     let help_text = "↑/↓ move  Enter select  Esc back  ? help  q quit";
-    let version_text = format!("v{}", APP_VERSION);
-    let footer_width = root[2].width as usize;
-    let gap = footer_width.saturating_sub(help_text.len() + version_text.len() + 2).max(2);
     let footer_line = Line::from(vec![
         Span::styled(
             help_text,
@@ -497,17 +589,6 @@ fn draw_tui(frame: &mut ratatui::Frame<'_>, app: &TuiApp) {
                 Style::default().fg(Color::Rgb(210, 150, 225))
             } else {
                 Style::default()
-            },
-        ),
-        Span::raw(" ".repeat(gap)),
-        Span::styled(
-            version_text,
-            if color_enabled {
-                Style::default()
-                    .fg(Color::Rgb(255, 92, 203))
-                    .add_modifier(Modifier::DIM)
-            } else {
-                Style::default().add_modifier(Modifier::DIM)
             },
         ),
     ]);
@@ -980,7 +1061,14 @@ fn draw_config(
     app: &TuiApp,
     color_enabled: bool,
 ) {
-    let items = ["Change trigger", "Toggle Unicode", "Reset config", "Back"];
+    let items = [
+        "Change trigger",
+        "Toggle Unicode",
+        "Reset config",
+        "Check for updates",
+        "Uninstall TypeSymbol",
+        "Back",
+    ];
     let mut lines = vec![
         Line::from(Span::styled("Configuration", Style::default().add_modifier(Modifier::BOLD))),
         Line::from(""),
@@ -1112,6 +1200,24 @@ fn ensure_background_service_silent(config_path: Option<PathBuf>) -> Result<&'st
     }
 }
 
+fn check_for_updates_silent() -> Result<bool, String> {
+    if !cfg!(target_os = "macos") {
+        return Err("Updates only supported on macOS Homebrew installs.".to_string());
+    }
+    if !command_exists("brew") {
+        return Err("Homebrew is not installed or not on PATH.".to_string());
+    }
+    let output = Command::new("brew")
+        .args(["outdated", "--formula", "typesymbol"])
+        .output()
+        .map_err(|err| format!("Failed to run Homebrew: {}", err))?;
+    if !output.status.success() {
+        return Err("Failed to check updates via Homebrew.".to_string());
+    }
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    Ok(!stdout.trim().is_empty())
+}
+
 fn run_settings_shell(mut loaded: LoadedConfig, config_path: Option<PathBuf>) {
     print_settings_landing(&loaded);
     let theme = RenderTheme::detect();
@@ -1236,6 +1342,35 @@ fn run_settings_shell(mut loaded: LoadedConfig, config_path: Option<PathBuf>) {
             }
             "update" => run_self_update(false),
             "update check" => run_self_update(true),
+            "uninstall" => {
+                println!("This will stop the daemon, disable autostart, and uninstall TypeSymbol.");
+                print!("Are you sure you want to proceed? (y/N): ");
+                let _ = io::stdout().flush();
+                let mut confirm = String::new();
+                if io::stdin().read_line(&mut confirm).is_ok() {
+                    let confirm = confirm.trim().to_lowercase();
+                    if confirm == "y" || confirm == "yes" {
+                        println!("Stopping background daemon...");
+                        match stop_daemon_silent() {
+                            Ok(msg) => println!("{}", msg),
+                            Err(err) => println!("Error stopping daemon: {}", err),
+                        }
+                        println!("Disabling autostart...");
+                        match disable_autostart_silent() {
+                            Ok(_) => println!("Autostart disabled."),
+                            Err(err) => println!("Error disabling autostart: {}", err),
+                        }
+                        println!("Triggering Homebrew uninstall...");
+                        let _ = Command::new("brew")
+                            .args(["uninstall", "typesymbol"])
+                            .status();
+                        println!("Uninstallation complete. Exiting.");
+                        return;
+                    } else {
+                        println!("Uninstall canceled.");
+                    }
+                }
+            },
             _ => {
                 if let Some(expr) = line.strip_prefix("test ") {
                     let engine = CoreEngine::new(loaded.config.clone());
@@ -1472,7 +1607,7 @@ fn render_dashboard(
         };
         let integral_col = 6usize;
         let text_col = 20usize;
-        let mut right_rows = vec![String::new(); art.len() + 2];
+        let mut right_rows = vec![String::new(); art.len() + 3];
         right_rows[0] = "Status".to_string();
         right_rows[1] = format!("{:<12} {}", "Service", format!("{service_dot} {service_state}"));
         right_rows[2] = format!("{:<12} {}", "Config", config_summary);
@@ -1483,7 +1618,8 @@ fn render_dashboard(
         right_rows[8] = format!("{:<12} {}", "config show", "View active config");
         right_rows[9] = format!("{:<12} {}", "update", "Upgrade via Homebrew");
         right_rows[10] = format!("{:<12} {}", "help", "Show all commands");
-        right_rows[11] = format!("{:<12} {}", "exit", "Close settings shell");
+        right_rows[11] = format!("{:<12} {}", "uninstall", "Uninstall TypeSymbol");
+        right_rows[12] = format!("{:<12} {}", "exit", "Close settings shell");
 
         for i in 0..right_rows.len() {
             let mut line = String::new();
@@ -1505,6 +1641,7 @@ fn render_dashboard(
             "    off          Stop daemon".to_string(),
             "    config show  View active config".to_string(),
             "    update       Upgrade via Homebrew".to_string(),
+            "    uninstall    Uninstall TypeSymbol".to_string(),
             "    help         Show all commands".to_string(),
             "    exit         Close settings shell".to_string(),
         ]);
@@ -1544,7 +1681,7 @@ fn render_box(lines: &[String], inner_width: usize, theme: &RenderTheme) -> Stri
 
 fn render_help(theme: &RenderTheme, width: usize) -> String {
     if width < COMPACT_MIN_WIDTH {
-        return "TypeSymbol Help\n\nQuick Commands\n  on        Start daemon\n  off       Stop daemon\n  update    Upgrade via Homebrew (macOS)\n  help      Show help\n  exit      Close shell\n\nConfig\n  config show\n  config set <key> <value>\n  config init\n\nDaemon\n  daemon status\n  daemon stop\n  daemon enable\n  daemon disable\n\nTesting\n  test <expr>\n".to_string();
+        return "TypeSymbol Help\n\nQuick Commands\n  on        Start daemon\n  off       Stop daemon\n  update    Upgrade via Homebrew (macOS)\n  uninstall Uninstall TypeSymbol\n  help      Show help\n  exit      Close shell\n\nConfig\n  config show\n  config set <key> <value>\n  config init\n\nDaemon\n  daemon status\n  daemon stop\n  daemon enable\n  daemon disable\n\nTesting\n  test <expr>\n".to_string();
     }
 
     let quick = [
@@ -1563,6 +1700,10 @@ fn render_help(theme: &RenderTheme, width: usize) -> String {
         CommandItem {
             command: "update",
             description: "Upgrade via Homebrew (macOS)",
+        },
+        CommandItem {
+            command: "uninstall",
+            description: "Uninstall TypeSymbol from system",
         },
         CommandItem {
             command: "exit",
@@ -2477,13 +2618,6 @@ fn run_app_mode(config: TypeSymbolConfig) {
 }
 
 fn run_self_update(check_only: bool) {
-    if !cfg!(target_os = "macos") {
-        println!("Automatic update is currently supported on macOS Homebrew installs.");
-        println!("Download the latest release from:");
-        println!("https://github.com/yazanmwk/TypeSymbol/releases/latest");
-        return;
-    }
-
     if !command_exists("brew") {
         eprintln!("Homebrew is not installed or not on PATH.");
         process::exit(1);

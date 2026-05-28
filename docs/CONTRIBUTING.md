@@ -36,7 +36,7 @@ You need a recent **stable Rust** toolchain (see [rustup.rs](https://rustup.rs/)
 cargo build --release -p typesymbol-cli
 ```
 
-Run the test suite (cross-platform; platform-specific code is `cfg`-gated):
+Run the test suite:
 
 ```bash
 cargo test
@@ -44,8 +44,7 @@ cargo test
 
 ### Platform targets
 
-- **macOS:** build on macOS to compile `typesymbol-platform-macos` and the full CLI.
-- On Linux, `cargo test` still exercises the core and other crates, but release artifacts are macOS-only.
+- **macOS:** TypeSymbol is macOS-only. You must build and test on macOS.
 
 ## Packaging scripts and forks
 
